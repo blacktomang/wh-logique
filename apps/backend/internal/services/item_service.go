@@ -46,6 +46,8 @@ func (s *ItemService) Create(ctx context.Context, input models.CreateItemInput) 
 }
 
 func (s *ItemService) List(ctx context.Context, input models.ListItemsInput) ([]models.Item, int64, error) {
+	input.Search = strings.TrimSpace(input.Search)
+
 	items, total, err := s.repository.List(ctx, input)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list items: %w", err)

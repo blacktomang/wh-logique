@@ -104,6 +104,7 @@ func (h *ItemHandler) Create(c *gin.Context) {
 // @Tags items
 // @Produce json
 // @Param category query string false "Item category" Enums(raw_material, finished_goods, packaging, spare_part, consumable, equipment)
+// @Param q query string false "Search by SKU or name"
 // @Param page query int false "Page number" default(1) minimum(1)
 // @Param limit query int false "Items per page" default(10) minimum(1) maximum(100)
 // @Success 200 {object} response.Envelope
@@ -258,6 +259,8 @@ func bindItemListInput(c *gin.Context) (models.ListItemsInput, []response.ErrorD
 	page, pageDetail := positiveIntQuery(c, "page", defaultItemsPage, 0)
 	limit, limitDetail := positiveIntQuery(c, "limit", defaultItemsLimit, maximumItemsLimit)
 
+	search := strings.TrimSpace(c.Query("q"))
+
 	details := make([]response.ErrorDetail, 0, 3)
 	if pageDetail != nil {
 		details = append(details, *pageDetail)
@@ -277,7 +280,7 @@ func bindItemListInput(c *gin.Context) (models.ListItemsInput, []response.ErrorD
 		}
 	}
 
-	return models.ListItemsInput{Category: category, Page: page, Limit: limit}, details
+	return models.ListItemsInput{Search: search, Category: category, Page: page, Limit: limit}, details
 }
 
 func positiveIntQuery(c *gin.Context, field string, defaultValue, maximum int) (int, *response.ErrorDetail) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -59,8 +60,9 @@ func (r *ItemRepository) List(ctx context.Context, input models.ListItemsInput) 
 		FROM items
 		WHERE deleted_at IS NULL
 		  AND ($1::text IS NULL OR category = $1::text)
+		  AND ($2::text IS NULL OR sku ILIKE '%' || $2::text || '%' OR name ILIKE '%' || $2::text || '%')
 		ORDER BY created_at DESC, id DESC
-		LIMIT $2 OFFSET $3
+		LIMIT $3 OFFSET $4
 	`
 
 	var category any
@@ -68,8 +70,13 @@ func (r *ItemRepository) List(ctx context.Context, input models.ListItemsInput) 
 		category = string(*input.Category)
 	}
 
+	var search any
+	if strings.TrimSpace(input.Search) != "" {
+		search = strings.TrimSpace(input.Search)
+	}
+
 	offset := (input.Page - 1) * input.Limit
-	rows, err := r.db.Query(ctx, query, category, input.Limit, offset)
+	rows, err := r.db.Query(ctx, query, category, search, input.Limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("query items: %w", err)
 	}
@@ -99,7 +106,7 @@ func (r *ItemRepository) List(ctx context.Context, input models.ListItemsInput) 
 	}
 
 	if len(items) == 0 {
-		total, err = r.count(ctx, input.Category)
+		total, err = r.count(ctx, input.Category, input.Search)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -189,12 +196,13 @@ func (r *ItemRepository) SoftDelete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (r *ItemRepository) count(ctx context.Context, category *models.ItemCategory) (int64, error) {
+func (r *ItemRepository) count(ctx context.Context, category *models.ItemCategory, search string) (int64, error) {
 	const query = `
 		SELECT COUNT(*)
 		FROM items
 		WHERE deleted_at IS NULL
 		  AND ($1::text IS NULL OR category = $1::text)
+		  AND ($2::text IS NULL OR sku ILIKE '%' || $2::text || '%' OR name ILIKE '%' || $2::text || '%')
 	`
 
 	var value any
@@ -202,8 +210,13 @@ func (r *ItemRepository) count(ctx context.Context, category *models.ItemCategor
 		value = string(*category)
 	}
 
+	var searchValue any
+	if strings.TrimSpace(search) != "" {
+		searchValue = strings.TrimSpace(search)
+	}
+
 	var total int64
-	if err := r.db.QueryRow(ctx, query, value).Scan(&total); err != nil {
+	if err := r.db.QueryRow(ctx, query, value, searchValue).Scan(&total); err != nil {
 		return 0, fmt.Errorf("count items: %w", err)
 	}
 

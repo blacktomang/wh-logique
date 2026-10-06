@@ -55,6 +55,7 @@ type UpdateItemInput struct {
 }
 
 type ListItemsInput struct {
+	Search   string
 	Category *ItemCategory
 	Page     int
 	Limit    int
