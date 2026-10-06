@@ -1,3 +1,3 @@
 export function EmptyState({ message }: { message: string }) {
-  return <p style={{ color: "#6b7280" }}>{message}</p>;
+  return <p className="py-8 text-center text-gray-500">{message}</p>;
 }

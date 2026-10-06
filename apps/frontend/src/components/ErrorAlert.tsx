@@ -9,17 +9,11 @@ export function ErrorAlert({ message, details }: ErrorAlertProps) {
   return (
     <div
       role="alert"
-      style={{
-        background: "#fef2f2",
-        border: "1px solid #fecaca",
-        color: "#991b1b",
-        padding: "0.75rem 1rem",
-        borderRadius: "0.375rem",
-      }}
+      className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-800"
     >
-      <strong>{message}</strong>
+      <strong className="font-semibold">{message}</strong>
       {details && details.length > 0 && (
-        <ul style={{ margin: "0.5rem 0 0", paddingLeft: "1.25rem" }}>
+        <ul className="mt-2 list-disc pl-5">
           {details.map((detail, index) => (
             <li key={`${detail.field ?? "error"}-${index}`}>
               {detail.field ? `${detail.field}: ` : ""}
