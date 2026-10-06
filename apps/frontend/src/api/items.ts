@@ -1,0 +1,35 @@
+import type { Item, ItemInput, ListItemsParams } from "../types/item";
+import type { Envelope } from "../types/api";
+import { request } from "./client";
+
+export function listItems(params: ListItemsParams = {}): Promise<Envelope<Item[]>> {
+  const search = new URLSearchParams();
+  if (params.category) search.set("category", params.category);
+  if (params.page) search.set("page", String(params.page));
+  if (params.limit) search.set("limit", String(params.limit));
+
+  const query = search.toString();
+  return request<Item[]>(`/items${query ? `?${query}` : ""}`);
+}
+
+export function getItem(id: string): Promise<Envelope<Item>> {
+  return request<Item>(`/items/${id}`);
+}
+
+export function createItem(input: ItemInput): Promise<Envelope<Item>> {
+  return request<Item>("/items", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateItem(id: string, input: ItemInput): Promise<Envelope<Item>> {
+  return request<Item>(`/items/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteItem(id: string): Promise<Envelope<null>> {
+  return request<null>(`/items/${id}`, { method: "DELETE" });
+}
