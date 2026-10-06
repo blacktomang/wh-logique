@@ -5,6 +5,7 @@ import { Button } from "../../components/Button";
 import { FormField } from "../../components/FormField";
 import { Input, Select } from "../../components/Field";
 import { paths } from "../../router/paths";
+import { formatLabel } from "../../utils/format";
 import { ITEM_CATEGORIES, ITEM_UNITS } from "../../types/item";
 import type { Item, ItemCategory, ItemUnit } from "../../types/item";
 
@@ -27,20 +28,17 @@ export function ItemForm({ initial }: ItemFormProps) {
   } = useItemForm(initial);
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="grid max-w-md gap-4">
+    <form onSubmit={handleSubmit} noValidate className="grid gap-5 sm:grid-cols-2">
       {success && (
         <div
           role="status"
-          className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-green-800"
+          className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 sm:col-span-2"
         >
           {success}
         </div>
       )}
       {error && (
-        <ErrorAlert
-          message={error}
-          {...(errorDetails ? { details: errorDetails } : {})}
-        />
+        <div className="sm:col-span-2"><ErrorAlert message={error} {...(errorDetails ? { details: errorDetails } : {})} /></div>
       )}
 
       <FormField label="SKU" id="sku" error={fieldErrors.sku}>
@@ -55,7 +53,7 @@ export function ItemForm({ initial }: ItemFormProps) {
         />
       </FormField>
 
-      <FormField label="Name" id="name" error={fieldErrors.name}>
+      <FormField label="Item name" id="name" error={fieldErrors.name}>
         <Input
           value={form.name}
           onChange={(e) => updateField("name", e.target.value)}
@@ -83,7 +81,7 @@ export function ItemForm({ initial }: ItemFormProps) {
           <option value="">Select a category</option>
           {ITEM_CATEGORIES.map((category) => (
             <option key={category} value={category}>
-              {category}
+              {formatLabel(category)}
             </option>
           ))}
         </Select>
@@ -107,14 +105,14 @@ export function ItemForm({ initial }: ItemFormProps) {
         </Select>
       </FormField>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 border-t border-ink-950/10 pt-5 sm:col-span-2">
         <Button type="submit" isLoading={isPending} disabled={isPending}>
           {isPending ? "Saving…" : isEditing ? "Update" : "Create"}
         </Button>
         {createdId && (
           <Link
             to={paths.itemDetail(createdId)}
-            className="text-sm font-medium text-blue-600 hover:underline"
+            className="rounded-sm text-sm font-bold text-sage-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500"
           >
             View item
           </Link>
