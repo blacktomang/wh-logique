@@ -1,128 +1,125 @@
-import { useState } from "react";
-import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
-import { useCreateItem, useUpdateItem } from "../../hooks/useItems";
-import { ApiError } from "../../api/client";
+import { Link } from "react-router-dom";
+import { useItemForm } from "../../hooks/useItemForm";
 import { ErrorAlert } from "../../components/ErrorAlert";
+import { Button } from "../../components/Button";
+import { FormField } from "../../components/FormField";
+import { Input, Select } from "../../components/Field";
 import { paths } from "../../router/paths";
 import { ITEM_CATEGORIES, ITEM_UNITS } from "../../types/item";
-import type { Item, ItemInput } from "../../types/item";
+import type { Item, ItemCategory, ItemUnit } from "../../types/item";
 
 interface ItemFormProps {
   initial?: Item;
 }
 
-interface FormState {
-  sku: string;
-  name: string;
-  category: ItemInput["category"];
-  unit: ItemInput["unit"];
-}
-
 export function ItemForm({ initial }: ItemFormProps) {
-  const navigate = useNavigate();
-  const isEditing = Boolean(initial);
-
-  const createMutation = useCreateItem();
-  const updateMutation = useUpdateItem(initial?.id ?? "");
-
-  const [form, setForm] = useState<FormState>({
-    sku: initial?.sku ?? "",
-    name: initial?.name ?? "",
-    category: initial?.category ?? ITEM_CATEGORIES[0],
-    unit: initial?.unit ?? ITEM_UNITS[0],
-  });
-
-  const [error, setError] = useState<string | null>(null);
-
-  function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    setError(null);
-
-    const input: ItemInput = {
-      sku: form.sku.trim(),
-      name: form.name.trim(),
-      category: form.category,
-      unit: form.unit,
-    };
-
-    try {
-      if (isEditing && initial) {
-        await updateMutation.mutateAsync(input);
-        navigate(paths.itemDetail(initial.id));
-      } else {
-        await createMutation.mutateAsync(input);
-        navigate(paths.items);
-      }
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to save item");
-    }
-  }
-
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const {
+    isEditing,
+    form,
+    fieldErrors,
+    isPending,
+    success,
+    error,
+    errorDetails,
+    createdId,
+    updateField,
+    handleSubmit,
+  } = useItemForm(initial);
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{ display: "grid", gap: "1rem", maxWidth: "32rem" }}
-    >
-      {error && <ErrorAlert message={error} />}
+    <form onSubmit={handleSubmit} noValidate className="grid max-w-md gap-4">
+      {success && (
+        <div
+          role="status"
+          className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-green-800"
+        >
+          {success}
+        </div>
+      )}
+      {error && (
+        <ErrorAlert
+          message={error}
+          {...(errorDetails ? { details: errorDetails } : {})}
+        />
+      )}
 
-      <label style={{ display: "grid", gap: "0.25rem" }}>
-        SKU
-        <input
+      <FormField label="SKU" id="sku" error={fieldErrors.sku}>
+        <Input
           value={form.sku}
           onChange={(e) => updateField("sku", e.target.value)}
-          required
           maxLength={64}
+          required
+          disabled={isPending}
+          aria-invalid={fieldErrors.sku ? true : undefined}
+          aria-describedby={fieldErrors.sku ? "sku-error" : undefined}
         />
-      </label>
+      </FormField>
 
-      <label style={{ display: "grid", gap: "0.25rem" }}>
-        Name
-        <input
+      <FormField label="Name" id="name" error={fieldErrors.name}>
+        <Input
           value={form.name}
           onChange={(e) => updateField("name", e.target.value)}
-          required
           maxLength={255}
+          required
+          disabled={isPending}
+          aria-invalid={fieldErrors.name ? true : undefined}
+          aria-describedby={fieldErrors.name ? "name-error" : undefined}
         />
-      </label>
+      </FormField>
 
-      <label style={{ display: "grid", gap: "0.25rem" }}>
-        Category
-        <select
+      <FormField label="Category" id="category" error={fieldErrors.category}>
+        <Select
           value={form.category}
-          onChange={(e) => updateField("category", e.target.value as FormState["category"])}
+          onChange={(e) =>
+            updateField("category", e.target.value as ItemCategory | "")
+          }
+          required
+          disabled={isPending}
+          aria-invalid={fieldErrors.category ? true : undefined}
+          aria-describedby={
+            fieldErrors.category ? "category-error" : undefined
+          }
         >
+          <option value="">Select a category</option>
           {ITEM_CATEGORIES.map((category) => (
             <option key={category} value={category}>
               {category}
             </option>
           ))}
-        </select>
-      </label>
+        </Select>
+      </FormField>
 
-      <label style={{ display: "grid", gap: "0.25rem" }}>
-        Unit
-        <select
+      <FormField label="Unit" id="unit" error={fieldErrors.unit}>
+        <Select
           value={form.unit}
-          onChange={(e) => updateField("unit", e.target.value as FormState["unit"])}
+          onChange={(e) => updateField("unit", e.target.value as ItemUnit | "")}
+          required
+          disabled={isPending}
+          aria-invalid={fieldErrors.unit ? true : undefined}
+          aria-describedby={fieldErrors.unit ? "unit-error" : undefined}
         >
+          <option value="">Select a unit</option>
           {ITEM_UNITS.map((unit) => (
             <option key={unit} value={unit}>
               {unit}
             </option>
           ))}
-        </select>
-      </label>
+        </Select>
+      </FormField>
 
-      <button type="submit" disabled={isPending}>
-        {isPending ? "Saving…" : isEditing ? "Update" : "Create"}
-      </button>
+      <div className="flex items-center gap-3">
+        <Button type="submit" isLoading={isPending} disabled={isPending}>
+          {isPending ? "Saving…" : isEditing ? "Update" : "Create"}
+        </Button>
+        {createdId && (
+          <Link
+            to={paths.itemDetail(createdId)}
+            className="text-sm font-medium text-blue-600 hover:underline"
+          >
+            View item
+          </Link>
+        )}
+      </div>
     </form>
   );
 }
