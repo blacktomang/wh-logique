@@ -22,6 +22,7 @@ This command must start the frontend, backend, and PostgreSQL together.
 - Never hardcode secrets, credentials, hosts, or environment-specific values.
 - Never weaken typing, linting, validation, or tests to make checks pass.
 - Update documentation when setup commands or behavior change.
+- Do not run auto test or type validation after implementing
 
 ## Target Structure
 ```text

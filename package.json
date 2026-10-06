@@ -1,0 +1,13 @@
+{
+  "name": "wh-logique",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "docker compose up",
+    "dev:build": "docker compose up --build",
+    "down": "docker compose down",
+    "db:up": "docker compose up -d postgres",
+    "db:migrate": "docker compose run --rm migrate"
+  }
+}
