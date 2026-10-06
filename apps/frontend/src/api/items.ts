@@ -4,6 +4,7 @@ import { request } from "./client";
 
 export function listItems(params: ListItemsParams = {}): Promise<Envelope<Item[]>> {
   const search = new URLSearchParams();
+  if (params.search) search.set("q", params.search);
   if (params.category) search.set("category", params.category);
   if (params.page) search.set("page", String(params.page));
   if (params.limit) search.set("limit", String(params.limit));

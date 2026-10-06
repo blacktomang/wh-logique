@@ -39,6 +39,7 @@ export interface ItemInput {
 }
 
 export interface ListItemsParams {
+  search?: string;
   category?: ItemCategory;
   page?: number;
   limit?: number;
