@@ -60,6 +60,7 @@ func main() {
 
 	router := gin.New()
 	router.Use(
+		middleware.CORS(cfg.CORSAllowedOrigins),
 		middleware.RequestID(),
 		middleware.Logger(logger),
 		middleware.ErrorHandler(logger),
