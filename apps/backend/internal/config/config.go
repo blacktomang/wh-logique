@@ -3,7 +3,10 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -14,6 +17,8 @@ type Config struct {
 }
 
 func Load() (Config, error) {
+	loadDotEnv()
+
 	cfg := Config{
 		Environment:        getEnv("APP_ENV", "development"),
 		HTTPPort:           getEnv("HTTP_PORT", "8080"),
@@ -26,6 +31,31 @@ func Load() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// loadDotEnv loads a `.env` file from the repository root, walking up from the
+// current working directory until one is found. This lets the backend be run
+// from any directory (`go run ./cmd/server` in apps/backend or the repo root).
+// A missing file is not an error: when absent (e.g. inside a container), the
+// process simply falls back to its existing environment.
+func loadDotEnv() {
+	dir, err := os.Getwd()
+	if err != nil {
+		return
+	}
+
+	for {
+		if _, statErr := os.Stat(filepath.Join(dir, ".env")); statErr == nil {
+			_ = godotenv.Load(filepath.Join(dir, ".env"))
+			return
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return
+		}
+		dir = parent
+	}
 }
 
 func parseAllowedOrigins(value string) []string {
