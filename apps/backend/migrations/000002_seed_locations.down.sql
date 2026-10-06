@@ -1,0 +1,6 @@
+DELETE FROM locations
+WHERE code IN (
+    'A-RACK', 'A-SHELF', 'A-BIN', 'A-FLOOR', 'A-COLD-STORAGE',
+    'B-RACK', 'B-SHELF', 'B-BIN', 'B-FLOOR', 'B-COLD-STORAGE',
+    'C-RACK', 'C-SHELF', 'C-BIN', 'C-FLOOR', 'C-COLD-STORAGE'
+);

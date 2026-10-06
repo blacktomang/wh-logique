@@ -1,0 +1,76 @@
+openapi: 3.0.3
+info:
+  title: WH Logique API
+  version: 0.1.0
+paths:
+  /locations:
+    get:
+      summary: List locations
+      description: Returns all seeded warehouse locations without pagination.
+      tags: [locations]
+      responses:
+        "200":
+          description: Locations retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationListResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    Location:
+      type: object
+      required: [id, code, zone, type]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          example: A-RACK
+        zone:
+          type: string
+          enum: [A, B, C]
+        type:
+          type: string
+          enum: [rack, shelf, bin, floor, cold_storage]
+    LocationListResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Locations retrieved successfully
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Location"
+    ErrorDetail:
+      type: object
+      properties:
+        field:
+          type: string
+        reason:
+          type: string
+    ErrorResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Internal server error
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/ErrorDetail"
