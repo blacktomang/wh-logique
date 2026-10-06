@@ -30,5 +30,19 @@ services:
       - up
     restart: "no"
 
+  backend:
+    build:
+      context: ./apps/backend
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      HTTP_PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER:-wh_logique}:${POSTGRES_PASSWORD:-wh_logique_dev}@postgres:5432/${POSTGRES_DB:-wh_logique}?sslmode=disable
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
 volumes:
   postgres_data:
