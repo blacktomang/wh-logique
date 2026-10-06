@@ -54,6 +54,10 @@ func main() {
 	itemService := services.NewItemService(itemRepository)
 	itemHandler := handlers.NewItemHandler(itemService)
 
+	stockRepository := repository.NewStockRepository(db)
+	stockService := services.NewStockService(stockRepository)
+	stockHandler := handlers.NewStockHandler(stockService)
+
 	router := gin.New()
 	router.Use(
 		middleware.RequestID(),
@@ -67,6 +71,8 @@ func main() {
 	router.GET("/items/:id", itemHandler.Get)
 	router.PUT("/items/:id", itemHandler.Update)
 	router.DELETE("/items/:id", itemHandler.Delete)
+	router.POST("/stock/receive", stockHandler.Receive)
+	router.GET("/stock/:item_id", stockHandler.Get)
 
 	server := &http.Server{
 		Addr:              ":" + cfg.HTTPPort,

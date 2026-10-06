@@ -147,10 +147,66 @@ paths:
           $ref: "#/components/responses/ItemNotFound"
         "500":
           $ref: "#/components/responses/InternalError"
+  /stock/receive:
+    post:
+      summary: Receive stock
+      description: Applies one or more stock receipts atomically. Each line adds the given quantity to an item-location balance and records an append-only stock log entry.
+      tags: [stock]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StockReceiveRequest"
+      responses:
+        "200":
+          description: Stock received successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockListResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "404":
+          description: Item or location not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /stock/{item_id}:
+    parameters:
+      - $ref: "#/components/parameters/StockItemID"
+    get:
+      summary: Get stock by item
+      description: Returns every stock balance for a single item, grouped by location.
+      tags: [stock]
+      responses:
+        "200":
+          description: Stock retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockListResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "404":
+          $ref: "#/components/responses/ItemNotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
 components:
   parameters:
     ItemID:
       name: id
+      in: path
+      required: true
+      description: Item UUID
+      schema:
+        type: string
+        format: uuid
+    StockItemID:
+      name: item_id
       in: path
       required: true
       description: Item UUID
@@ -313,6 +369,64 @@ components:
         message:
           type: string
           example: Item deleted successfully
+    StockReceiveLine:
+      type: object
+      additionalProperties: false
+      required: [item_id, location_id, qty]
+      properties:
+        item_id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        qty:
+          type: integer
+          minimum: 1
+    StockReceiveRequest:
+      type: object
+      additionalProperties: false
+      required: [lines]
+      properties:
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/StockReceiveLine"
+    Stock:
+      type: object
+      required: [id, item_id, location_id, qty, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        item_id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        qty:
+          type: integer
+          minimum: 0
+        updated_at:
+          type: string
+          format: date-time
+    StockListResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Stock retrieved successfully
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Stock"
     ErrorDetail:
       type: object
       required: [reason]
