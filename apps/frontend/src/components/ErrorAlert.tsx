@@ -9,7 +9,7 @@ export function ErrorAlert({ message, details }: ErrorAlertProps) {
   return (
     <div
       role="alert"
-      className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-800"
+      className="rounded-lg border border-red-300/70 bg-red-50 px-4 py-3.5 text-sm text-red-900 shadow-[0_6px_18px_rgb(185_28_28/0.06)]"
     >
       <strong className="font-semibold">{message}</strong>
       {details && details.length > 0 && (

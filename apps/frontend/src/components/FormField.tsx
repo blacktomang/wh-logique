@@ -18,7 +18,8 @@ export function FormField({ label, id, error, children }: FormFieldProps) {
     <Field label={label}>
       {children}
       {error && (
-        <p id={`${id}-error`} className="text-sm text-red-600">
+        <p id={`${id}-error`} className="flex items-center gap-1.5 text-xs font-semibold text-red-700">
+          <span aria-hidden="true">●</span>
           {error}
         </p>
       )}

@@ -1,1 +1,113 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --color-ink-950: #17201f;
+  --color-ink-800: #2d3b39;
+  --color-ink-600: #5f6f6b;
+  --color-canvas: #f4f3ee;
+  --color-paper: #fffef9;
+  --color-sage-50: #eef3ee;
+  --color-sage-100: #dce7dd;
+  --color-sage-500: #53735f;
+  --color-sage-700: #365342;
+  --color-sage-900: #23372d;
+  --color-amber-400: #d99b38;
+}
+
+:root {
+  color: #17201f;
+  background: #f4f3ee;
+  font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 8% 0%, rgb(211 224 212 / 55%), transparent 28rem),
+    linear-gradient(rgb(23 32 31 / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(23 32 31 / 0.025) 1px, transparent 1px),
+    #f4f3ee;
+  background-size: auto, 32px 32px, 32px 32px, auto;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button,
+a,
+input,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  color: #fffef9;
+  background: #53735f;
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 60;
+  top: 0.75rem;
+  left: 0.75rem;
+  transform: translateY(-150%);
+  border-radius: 0.5rem;
+  background: #17201f;
+  color: white;
+  padding: 0.65rem 0.9rem;
+  font-weight: 600;
+  transition: transform 180ms ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.app-shell::after {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  content: "";
+  opacity: 0.22;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.055'/%3E%3C/svg%3E");
+}
+
+.page-enter {
+  animation: page-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

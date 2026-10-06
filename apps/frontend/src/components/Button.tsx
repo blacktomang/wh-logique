@@ -8,14 +8,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold tracking-[-0.01em] shadow-sm transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas active:translate-y-px active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none disabled:active:translate-y-0 disabled:active:scale-100";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-500",
+    "bg-sage-700 text-white shadow-[0_6px_14px_rgb(54_83_66/0.18)] hover:-translate-y-0.5 hover:bg-sage-900 hover:shadow-[0_9px_20px_rgb(54_83_66/0.22)] focus-visible:ring-sage-500",
   secondary:
-    "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-blue-500",
-  danger: "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500",
+    "border border-ink-950/15 bg-paper text-ink-800 hover:-translate-y-0.5 hover:border-sage-500/45 hover:bg-sage-50 hover:text-sage-900 focus-visible:ring-sage-500",
+  danger: "bg-red-700 text-white shadow-[0_6px_14px_rgb(185_28_28/0.14)] hover:-translate-y-0.5 hover:bg-red-800 focus-visible:ring-red-500",
 };
 
 export function Button({
