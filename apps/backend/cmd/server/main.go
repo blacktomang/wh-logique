@@ -50,6 +50,10 @@ func main() {
 	locationService := services.NewLocationService(locationRepository)
 	locationHandler := handlers.NewLocationHandler(locationService)
 
+	itemRepository := repository.NewItemRepository(db)
+	itemService := services.NewItemService(itemRepository)
+	itemHandler := handlers.NewItemHandler(itemService)
+
 	router := gin.New()
 	router.Use(
 		middleware.RequestID(),
@@ -58,6 +62,11 @@ func main() {
 		middleware.Recovery(logger),
 	)
 	router.GET("/locations", locationHandler.List)
+	router.POST("/items", itemHandler.Create)
+	router.GET("/items", itemHandler.List)
+	router.GET("/items/:id", itemHandler.Get)
+	router.PUT("/items/:id", itemHandler.Update)
+	router.DELETE("/items/:id", itemHandler.Delete)
 
 	server := &http.Server{
 		Addr:              ":" + cfg.HTTPPort,

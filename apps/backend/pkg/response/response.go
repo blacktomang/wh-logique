@@ -19,11 +19,26 @@ type ErrorDetail struct {
 	Reason string `json:"reason"`
 }
 
+type PaginationMeta struct {
+	Page  int   `json:"page"`
+	Limit int   `json:"limit"`
+	Total int64 `json:"total"`
+}
+
 func Success(c *gin.Context, status int, message string, data any) {
 	c.JSON(status, Envelope{
 		Success: true,
 		Message: message,
 		Data:    data,
+	})
+}
+
+func SuccessWithMeta(c *gin.Context, status int, message string, data, meta any) {
+	c.JSON(status, Envelope{
+		Success: true,
+		Message: message,
+		Data:    data,
+		Meta:    meta,
 	})
 }
 

@@ -1,10 +1,15 @@
 package errors
 
-import "fmt"
+import (
+	"fmt"
+
+	"wh-logique/backend/pkg/response"
+)
 
 type AppError struct {
 	Status  int
 	Message string
+	Details []response.ErrorDetail
 	Err     error
 }
 
@@ -22,4 +27,8 @@ func (e *AppError) Unwrap() error {
 
 func New(status int, message string, err error) *AppError {
 	return &AppError{Status: status, Message: message, Err: err}
+}
+
+func NewWithDetails(status int, message string, details []response.ErrorDetail, err error) *AppError {
+	return &AppError{Status: status, Message: message, Details: details, Err: err}
 }

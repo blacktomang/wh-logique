@@ -27,7 +27,7 @@ func ErrorHandler(logger *zap.Logger) gin.HandlerFunc {
 					zap.Error(appError.Err),
 				)
 			}
-			response.Error(c, appError.Status, appError.Message, nil)
+			response.Error(c, appError.Status, appError.Message, appError.Details)
 			return
 		}
 
