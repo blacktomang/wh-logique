@@ -102,6 +102,24 @@ select {
   animation: toast-progress linear both;
 }
 
+.table-loading-bar {
+  animation: table-loading 900ms ease-in-out infinite alternate;
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-shimmer::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 254 249 / 72%), transparent);
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
 @keyframes page-enter {
   from {
     opacity: 0;
@@ -119,6 +137,21 @@ select {
 @keyframes toast-progress {
   to {
     transform: scaleX(0);
+  }
+}
+
+@keyframes table-loading {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+@keyframes skeleton-shimmer {
+  to {
+    transform: translateX(100%);
   }
 }
 
