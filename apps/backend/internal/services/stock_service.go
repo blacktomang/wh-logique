@@ -14,6 +14,7 @@ import (
 var (
 	ErrStockItemNotFound     = errors.New("stock item not found")
 	ErrStockLocationNotFound = errors.New("stock location not found")
+	ErrInvalidStockQuantity  = errors.New("stock receipt quantity must be positive")
 )
 
 type StockStore interface {
@@ -31,6 +32,12 @@ func NewStockService(repository StockStore) *StockService {
 }
 
 func (s *StockService) Receive(ctx context.Context, input models.ReceiveStockInput) ([]models.Stock, error) {
+	for index, line := range input.Lines {
+		if line.Qty <= 0 {
+			return nil, fmt.Errorf("receive stock line %d: %w", index, ErrInvalidStockQuantity)
+		}
+	}
+
 	stocks, err := s.repository.Receive(ctx, input.Lines)
 	if err != nil {
 		return nil, translateStockRepositoryError("receive stock", err)
