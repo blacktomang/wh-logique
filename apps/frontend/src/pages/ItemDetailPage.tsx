@@ -1,26 +1,35 @@
 import { useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import type { FormEvent } from "react";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { useItem, useDeleteItem } from "../hooks/useItems";
 import { useLocations } from "../hooks/useLocations";
-import { useItemStock, useItemStockLogs } from "../hooks/useStock";
+import { useItemStock, useItemStockLogs, useReceiveStock } from "../hooks/useStock";
 import { ApiError } from "../api/client";
 import { Spinner } from "../components/Spinner";
 import { ErrorAlert } from "../components/ErrorAlert";
 import { Button } from "../components/Button";
 import { Dialog } from "../components/Dialog";
+import { FormField } from "../components/FormField";
+import { Input, Select } from "../components/Field";
 import { PageHeader } from "../components/PageHeader";
 import { paths } from "../router/paths";
 import { formatDate, formatLabel } from "../utils/format";
 
 export function ItemDetailPage() {
   const { id = "" } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const itemQuery = useItem(id);
   const stockQuery = useItemStock(id);
   const stockLogsQuery = useItemStockLogs(id);
   const locationsQuery = useLocations();
   const deleteMutation = useDeleteItem();
+  const receiveMutation = useReceiveStock();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [restockOpen, setRestockOpen] = useState(location.state?.restock === true);
+  const [locationId, setLocationId] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ location?: string; quantity?: string }>({});
 
   if (itemQuery.isPending || stockQuery.isPending || stockLogsQuery.isPending || locationsQuery.isPending) return <Spinner />;
   if (itemQuery.isError) return <ErrorAlert message={itemQuery.error instanceof ApiError ? itemQuery.error.message : "Failed to load item"} />;
@@ -37,6 +46,37 @@ export function ItemDetailPage() {
   async function handleDelete() {
     await deleteMutation.mutateAsync(item!.id);
     navigate(paths.items);
+  }
+
+  function closeRestock() {
+    if (receiveMutation.isPending) return;
+    setRestockOpen(false);
+    setLocationId("");
+    setQuantity("");
+    setFieldErrors({});
+    receiveMutation.reset();
+  }
+
+  async function handleRestock(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const qty = Number(quantity);
+    const errors: { location?: string; quantity?: string } = {};
+    if (!locationId) errors.location = "Select a location";
+    if (!quantity) errors.quantity = "Enter a quantity";
+    else if (!Number.isInteger(qty) || qty < 1) errors.quantity = "Quantity must be a positive whole number";
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    try {
+      await receiveMutation.mutateAsync({
+        lines: [{ item_id: item!.id, location_id: locationId, qty }],
+      });
+      closeRestock();
+    } catch {
+      // The mutation error is rendered in the dialog.
+    }
   }
 
   const details = [
@@ -57,7 +97,7 @@ export function ItemDetailPage() {
         description="Review identifying information and stock balances across warehouse locations."
         action={
           <div className="flex flex-wrap gap-2">
-            <Link to={paths.itemRestock(item.id)}><Button>Restock</Button></Link>
+            <Button onClick={() => setRestockOpen(true)}>Restock</Button>
             <Button variant="danger" onClick={() => setConfirmDelete(true)}>Delete</Button>
           </div>
         }
@@ -97,7 +137,7 @@ export function ItemDetailPage() {
             <div className="px-6 py-12 text-center">
               <p className="font-bold text-ink-950">No stock received yet</p>
               <p className="mt-1.5 text-sm text-ink-600">Receive stock to assign quantity to a warehouse location.</p>
-              <Link to={paths.itemRestock(item.id)} className="mt-5 inline-block"><Button>Restock item</Button></Link>
+              <Button className="mt-5" onClick={() => setRestockOpen(true)}>Restock item</Button>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -172,6 +212,65 @@ export function ItemDetailPage() {
           </div>
         )}
       </div>
+
+      <Dialog
+        open={restockOpen}
+        onClose={closeRestock}
+        title={`Restock ${item.name}`}
+        description={`Add incoming stock for ${item.sku} to a warehouse location.`}
+      >
+        <form onSubmit={handleRestock} noValidate className="grid gap-5">
+          {receiveMutation.error && (
+            <ErrorAlert
+              message={receiveMutation.error instanceof ApiError ? receiveMutation.error.message : "Failed to receive stock"}
+              {...(receiveMutation.error instanceof ApiError && receiveMutation.error.details.length > 0 ? { details: receiveMutation.error.details } : {})}
+            />
+          )}
+
+          <FormField label="Location" id="location" error={fieldErrors.location}>
+            <Select
+              value={locationId}
+              onChange={(event) => {
+                setLocationId(event.target.value);
+                setFieldErrors((current) => current.quantity ? { quantity: current.quantity } : {});
+              }}
+              disabled={receiveMutation.isPending}
+              aria-invalid={fieldErrors.location ? true : undefined}
+              aria-describedby={fieldErrors.location ? "location-error" : undefined}
+            >
+              <option value="">Select a location</option>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.code} · Zone {location.zone} · {formatLabel(location.type)}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+
+          <FormField label={`Quantity (${item.unit})`} id="quantity" error={fieldErrors.quantity}>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              step={1}
+              placeholder="0"
+              value={quantity}
+              onChange={(event) => {
+                setQuantity(event.target.value);
+                setFieldErrors((current) => current.location ? { location: current.location } : {});
+              }}
+              disabled={receiveMutation.isPending}
+              aria-invalid={fieldErrors.quantity ? true : undefined}
+              aria-describedby={fieldErrors.quantity ? "quantity-error" : undefined}
+            />
+          </FormField>
+
+          <div className="flex justify-end gap-2 border-t border-ink-950/10 pt-5">
+            <Button type="button" variant="secondary" onClick={closeRestock} disabled={receiveMutation.isPending}>Cancel</Button>
+            <Button type="submit" isLoading={receiveMutation.isPending}>Receive stock</Button>
+          </div>
+        </form>
+      </Dialog>
 
       <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} title="Delete item" description={`Remove ${item.name} from active inventory? This action cannot be undone.`} actions={<><Button variant="secondary" onClick={() => setConfirmDelete(false)}>Cancel</Button><Button variant="danger" isLoading={deleteMutation.isPending} onClick={handleDelete}>Delete item</Button></>} />
     </section>

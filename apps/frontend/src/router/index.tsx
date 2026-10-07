@@ -4,7 +4,6 @@ import { ItemsPage } from "../pages/ItemsPage";
 import { ItemNewPage } from "../pages/ItemNewPage";
 import { ItemDetailPage } from "../pages/ItemDetailPage";
 import { ItemEditPage } from "../pages/ItemEditPage";
-import { ItemRestockPage } from "../pages/ItemRestockPage";
 import { LocationsPage } from "../pages/LocationsPage";
 import { NotFound } from "./NotFound";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -20,7 +19,6 @@ export const router = createBrowserRouter([
       { path: paths.items, element: <ItemsPage /> },
       { path: paths.itemNew, element: <ItemNewPage /> },
       { path: paths.itemEdit(":id"), element: <ItemEditPage /> },
-      { path: paths.itemRestock(":id"), element: <ItemRestockPage /> },
       { path: paths.itemDetail(":id"), element: <ItemDetailPage /> },
       { path: paths.locations, element: <LocationsPage /> },
       { path: "*", element: <NotFound /> },
