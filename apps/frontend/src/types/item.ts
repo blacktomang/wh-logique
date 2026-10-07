@@ -38,6 +38,11 @@ export interface ItemInput {
   unit: ItemUnit;
 }
 
+export interface SKUAvailability {
+  sku: string;
+  available: boolean;
+}
+
 export interface ListItemsParams {
   search?: string;
   category?: ItemCategory;

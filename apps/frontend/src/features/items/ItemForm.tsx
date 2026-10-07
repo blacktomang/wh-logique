@@ -7,6 +7,7 @@ import { paths } from "../../router/paths";
 import { formatLabel } from "../../utils/format";
 import { ITEM_CATEGORIES, ITEM_UNITS } from "../../types/item";
 import type { Item, ItemCategory, ItemUnit } from "../../types/item";
+import { SKUAvailabilityStatus } from "./SKUAvailabilityStatus";
 
 interface ItemFormProps {
   initial?: Item;
@@ -17,7 +18,10 @@ export function ItemForm({ initial }: ItemFormProps) {
     isEditing,
     form,
     fieldErrors,
+    skuAvailabilityError,
+    skuAvailabilityStatus,
     isPending,
+    isSubmitDisabled,
     createdId,
     updateField,
     handleSubmit,
@@ -25,16 +29,31 @@ export function ItemForm({ initial }: ItemFormProps) {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="grid gap-5 sm:grid-cols-2">
-      <FormField label="SKU" id="sku" error={fieldErrors.sku}>
+      <FormField
+        label="SKU"
+        id="sku"
+        error={fieldErrors.sku ?? skuAvailabilityError}
+      >
         <Input
           value={form.sku}
           onChange={(e) => updateField("sku", e.target.value)}
           maxLength={64}
           required
           disabled={isPending}
-          aria-invalid={fieldErrors.sku ? true : undefined}
-          aria-describedby={fieldErrors.sku ? "sku-error" : undefined}
+          aria-invalid={fieldErrors.sku || skuAvailabilityError ? true : undefined}
+          aria-describedby={
+            [
+              fieldErrors.sku || skuAvailabilityError ? "sku-error" : null,
+              skuAvailabilityStatus !== "idle" &&
+              skuAvailabilityStatus !== "unavailable"
+                ? "sku-availability-status"
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" ") || undefined
+          }
         />
+        <SKUAvailabilityStatus status={skuAvailabilityStatus} />
       </FormField>
 
       <FormField label="Item name" id="name" error={fieldErrors.name}>
@@ -90,7 +109,11 @@ export function ItemForm({ initial }: ItemFormProps) {
       </FormField>
 
       <div className="flex items-center gap-3 border-t border-ink-950/10 pt-5 sm:col-span-2">
-        <Button type="submit" isLoading={isPending} disabled={isPending}>
+        <Button
+          type="submit"
+          isLoading={isPending}
+          disabled={isSubmitDisabled}
+        >
           {isPending ? "Saving…" : isEditing ? "Update" : "Create"}
         </Button>
         {createdId && (

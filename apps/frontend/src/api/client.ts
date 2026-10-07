@@ -34,7 +34,10 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
   let response: Response;
   try {
     response = await fetch(url, { ...init, headers });
-  } catch {
+  } catch (error) {
+    // Preserve an intentional query cancellation so TanStack Query can handle
+    // it without presenting a misleading network error to the user.
+    if (init.signal?.aborted) throw error;
     throw new ApiError(0, "Network error: unable to reach the server");
   }
 

@@ -1,8 +1,16 @@
-import type { Item, ItemInput, ListItemsParams } from "../types/item";
+import type {
+  Item,
+  ItemInput,
+  ListItemsParams,
+  SKUAvailability,
+} from "../types/item";
 import type { Envelope } from "../types/api";
 import { request } from "./client";
 
-export function listItems(params: ListItemsParams = {}): Promise<Envelope<Item[]>> {
+export function listItems(
+  params: ListItemsParams = {},
+  signal?: AbortSignal,
+): Promise<Envelope<Item[]>> {
   const search = new URLSearchParams();
   if (params.search) search.set("q", params.search);
   if (params.category) search.set("category", params.category);
@@ -10,11 +18,27 @@ export function listItems(params: ListItemsParams = {}): Promise<Envelope<Item[]
   if (params.limit) search.set("limit", String(params.limit));
 
   const query = search.toString();
-  return request<Item[]>(`/items${query ? `?${query}` : ""}`);
+  return request<Item[]>(
+    `/items${query ? `?${query}` : ""}`,
+    signal ? { signal } : {},
+  );
 }
 
-export function getItem(id: string): Promise<Envelope<Item>> {
-  return request<Item>(`/items/${id}`);
+export function checkSKUAvailability(
+  sku: string,
+  excludeId?: string,
+  signal?: AbortSignal,
+): Promise<Envelope<SKUAvailability>> {
+  const search = new URLSearchParams({ sku });
+  if (excludeId) search.set("exclude_id", excludeId);
+  return request<SKUAvailability>(
+    `/items/sku-availability?${search}`,
+    signal ? { signal } : {},
+  );
+}
+
+export function getItem(id: string, signal?: AbortSignal): Promise<Envelope<Item>> {
+  return request<Item>(`/items/${id}`, signal ? { signal } : {});
 }
 
 export function createItem(input: ItemInput): Promise<Envelope<Item>> {

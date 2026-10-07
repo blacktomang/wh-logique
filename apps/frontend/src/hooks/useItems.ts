@@ -1,20 +1,40 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createItem, deleteItem, getItem, listItems, updateItem } from "../api/items";
+import {
+  checkSKUAvailability,
+  createItem,
+  deleteItem,
+  getItem,
+  listItems,
+  updateItem,
+} from "../api/items";
 import { itemKeys } from "../api/queryKeys";
 import type { ItemInput, ListItemsParams } from "../types/item";
 
 export function useItems(params: ListItemsParams = {}) {
   return useQuery({
     queryKey: itemKeys.list(params),
-    queryFn: () => listItems(params),
+    queryFn: ({ signal }) => listItems(params, signal),
   });
 }
 
 export function useItem(id: string) {
   return useQuery({
     queryKey: itemKeys.detail(id),
-    queryFn: () => getItem(id),
+    queryFn: ({ signal }) => getItem(id, signal),
     enabled: Boolean(id),
+  });
+}
+
+export function useSKUAvailability(
+  sku: string,
+  excludeId: string | undefined,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: itemKeys.availability(sku, excludeId),
+    queryFn: ({ signal }) => checkSKUAvailability(sku, excludeId, signal),
+    enabled,
+    retry: false,
   });
 }
 
