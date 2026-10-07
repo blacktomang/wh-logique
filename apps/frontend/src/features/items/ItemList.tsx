@@ -143,7 +143,6 @@ export function ItemList() {
                   <td className="whitespace-nowrap px-5 py-4 text-right">
                     <Link to={paths.itemDetail(item.id)}><Button variant="secondary">Detail</Button></Link>
                     <Link to={paths.itemEdit(item.id)} className="ml-2"><Button variant="secondary">Edit</Button></Link>
-                    <Link to={paths.itemDetail(item.id)} state={{ restock: true }} className="ml-2"><Button>Restock</Button></Link>
                     <Button variant="danger" className="ml-2" onClick={() => setPendingDelete(item.id)}>Delete</Button>
                   </td>
                 </tr>
