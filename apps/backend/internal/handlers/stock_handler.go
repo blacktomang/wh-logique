@@ -72,13 +72,12 @@ func (h *StockHandler) Receive(c *gin.Context) {
 
 // Get returns the stock balance for an item across all locations.
 // @Summary Get stock by item
-// @Description Returns every stock balance for a single item, grouped by location.
+// @Description Returns every stock balance for a single item, grouped by location. Unknown items and items without stock return an empty list.
 // @Tags stock
 // @Produce json
 // @Param item_id path string true "Item ID" format(uuid)
 // @Success 200 {object} response.Envelope
 // @Failure 400 {object} response.Envelope
-// @Failure 404 {object} response.Envelope
 // @Failure 500 {object} response.Envelope
 // @Router /api/v1/stock/{item_id} [get]
 func (h *StockHandler) Get(c *gin.Context) {
@@ -98,7 +97,7 @@ func (h *StockHandler) Get(c *gin.Context) {
 
 // GetLogs returns the append-only receipt history for an item.
 // @Summary Get stock logs by item
-// @Description Returns every stock receipt for a single item, newest first.
+// @Description Returns every stock receipt for a single item, newest first. Unknown items and items without receipts return an empty list.
 // @Tags stock
 // @Produce json
 // @Param item_id path string true "Item ID" format(uuid)

@@ -50,6 +50,12 @@ paths:
       description: Returns non-deleted items using optional category filtering and pagination.
       tags: [items]
       parameters:
+        - name: q
+          in: query
+          required: false
+          description: Case-insensitive search by SKU or name.
+          schema:
+            type: string
         - name: category
           in: query
           required: false
@@ -180,7 +186,7 @@ paths:
       - $ref: "#/components/parameters/StockItemID"
     get:
       summary: Get stock by item
-      description: Returns every stock balance for a single item, grouped by location.
+      description: Returns every stock balance for a single item, grouped by location. Unknown items and items without stock return an empty list.
       tags: [stock]
       responses:
         "200":
@@ -191,8 +197,6 @@ paths:
                 $ref: "#/components/schemas/StockListResponse"
         "400":
           $ref: "#/components/responses/InvalidRequest"
-        "404":
-          $ref: "#/components/responses/ItemNotFound"
         "500":
           $ref: "#/components/responses/InternalError"
   /api/v1/stock/{item_id}/logs:
@@ -200,7 +204,7 @@ paths:
       - $ref: "#/components/parameters/StockItemID"
     get:
       summary: Get stock logs by item
-      description: Returns every stock receipt for a single item, newest first.
+      description: Returns every stock receipt for a single item, newest first. Unknown items and items without receipts return an empty list.
       tags: [stock]
       responses:
         "200":
