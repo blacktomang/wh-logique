@@ -195,6 +195,24 @@ paths:
           $ref: "#/components/responses/ItemNotFound"
         "500":
           $ref: "#/components/responses/InternalError"
+  /stock/{item_id}/logs:
+    parameters:
+      - $ref: "#/components/parameters/StockItemID"
+    get:
+      summary: Get stock logs by item
+      description: Returns every stock receipt for a single item, newest first.
+      tags: [stock]
+      responses:
+        "200":
+          description: Stock logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockLogListResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
 components:
   parameters:
     ItemID:
@@ -427,6 +445,39 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Stock"
+    StockLog:
+      type: object
+      required: [id, item_id, location_id, qty, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        item_id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        qty:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+    StockLogListResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Stock logs retrieved successfully
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/StockLog"
     ErrorDetail:
       type: object
       required: [reason]

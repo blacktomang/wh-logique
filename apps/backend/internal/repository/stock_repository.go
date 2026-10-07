@@ -85,6 +85,36 @@ func (r *StockRepository) ListByItem(ctx context.Context, itemID uuid.UUID) ([]m
 	return stocks, nil
 }
 
+func (r *StockRepository) ListLogsByItem(ctx context.Context, itemID uuid.UUID) ([]models.StockLog, error) {
+	const query = `
+		SELECT id, item_id, location_id, qty, created_at
+		FROM stock_logs
+		WHERE item_id = $1
+		ORDER BY created_at DESC, id DESC
+	`
+
+	rows, err := r.db.Query(ctx, query, itemID)
+	if err != nil {
+		return nil, fmt.Errorf("query stock logs: %w", err)
+	}
+	defer rows.Close()
+
+	logs := make([]models.StockLog, 0)
+	for rows.Next() {
+		var log models.StockLog
+		if err := rows.Scan(&log.ID, &log.ItemID, &log.LocationID, &log.Qty, &log.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan stock log: %w", err)
+		}
+		logs = append(logs, log)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate stock logs: %w", err)
+	}
+
+	return logs, nil
+}
+
 func receiveOne(ctx context.Context, tx pgx.Tx, line models.ReceiveStockLine) (models.Stock, error) {
 	stock, err := upsertStock(ctx, tx, line)
 	if err != nil {

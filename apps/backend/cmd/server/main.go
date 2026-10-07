@@ -73,6 +73,7 @@ func main() {
 	router.PUT("/items/:id", itemHandler.Update)
 	router.DELETE("/items/:id", itemHandler.Delete)
 	router.POST("/stock/receive", stockHandler.Receive)
+	router.GET("/stock/:item_id/logs", stockHandler.GetLogs)
 	router.GET("/stock/:item_id", stockHandler.Get)
 
 	server := &http.Server{

@@ -21,6 +21,7 @@ const maximumReceiveLines = 100
 type StockService interface {
 	Receive(ctx context.Context, input models.ReceiveStockInput) ([]models.Stock, error)
 	ListByItem(ctx context.Context, itemID uuid.UUID) ([]models.Stock, error)
+	ListLogsByItem(ctx context.Context, itemID uuid.UUID) ([]models.StockLog, error)
 }
 
 type StockHandler struct {
@@ -93,6 +94,31 @@ func (h *StockHandler) Get(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "Stock retrieved successfully", stocks)
+}
+
+// GetLogs returns the append-only receipt history for an item.
+// @Summary Get stock logs by item
+// @Description Returns every stock receipt for a single item, newest first.
+// @Tags stock
+// @Produce json
+// @Param item_id path string true "Item ID" format(uuid)
+// @Success 200 {object} response.Envelope
+// @Failure 400 {object} response.Envelope
+// @Failure 500 {object} response.Envelope
+// @Router /stock/{item_id}/logs [get]
+func (h *StockHandler) GetLogs(c *gin.Context) {
+	itemID, ok := bindStockItemID(c)
+	if !ok {
+		return
+	}
+
+	logs, err := h.service.ListLogsByItem(c.Request.Context(), itemID)
+	if err != nil {
+		handleStockServiceError(c, err, "Failed to retrieve stock logs")
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Stock logs retrieved successfully", logs)
 }
 
 func bindStockReceiveRequest(c *gin.Context) ([]models.ReceiveStockLine, []response.ErrorDetail) {

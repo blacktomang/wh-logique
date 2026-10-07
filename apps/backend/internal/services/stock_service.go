@@ -19,6 +19,7 @@ var (
 type StockStore interface {
 	Receive(ctx context.Context, lines []models.ReceiveStockLine) ([]models.Stock, error)
 	ListByItem(ctx context.Context, itemID uuid.UUID) ([]models.Stock, error)
+	ListLogsByItem(ctx context.Context, itemID uuid.UUID) ([]models.StockLog, error)
 }
 
 type StockService struct {
@@ -45,6 +46,15 @@ func (s *StockService) ListByItem(ctx context.Context, itemID uuid.UUID) ([]mode
 	}
 
 	return stocks, nil
+}
+
+func (s *StockService) ListLogsByItem(ctx context.Context, itemID uuid.UUID) ([]models.StockLog, error) {
+	logs, err := s.repository.ListLogsByItem(ctx, itemID)
+	if err != nil {
+		return nil, fmt.Errorf("list stock logs: %w", err)
+	}
+
+	return logs, nil
 }
 
 func translateStockRepositoryError(operation string, err error) error {
