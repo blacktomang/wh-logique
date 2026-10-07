@@ -12,12 +12,16 @@ import (
 )
 
 type itemStoreStub struct {
-	createdInput models.CreateItemInput
-	updatedInput models.UpdateItemInput
-	createErr    error
-	getErr       error
-	updateErr    error
-	deleteErr    error
+	createdInput          models.CreateItemInput
+	updatedInput          models.UpdateItemInput
+	availabilitySKU       string
+	availabilityExcludeID *uuid.UUID
+	availabilityResult    bool
+	availabilityErr       error
+	createErr             error
+	getErr                error
+	updateErr             error
+	deleteErr             error
 }
 
 func (s *itemStoreStub) Create(_ context.Context, input models.CreateItemInput) (models.Item, error) {
@@ -27,6 +31,12 @@ func (s *itemStoreStub) Create(_ context.Context, input models.CreateItemInput) 
 
 func (s *itemStoreStub) List(context.Context, models.ListItemsInput) ([]models.Item, int64, error) {
 	return nil, 0, nil
+}
+
+func (s *itemStoreStub) IsSKUAvailable(_ context.Context, sku string, excludeID *uuid.UUID) (bool, error) {
+	s.availabilitySKU = sku
+	s.availabilityExcludeID = excludeID
+	return s.availabilityResult, s.availabilityErr
 }
 
 func (s *itemStoreStub) GetByID(context.Context, uuid.UUID) (models.Item, error) {
@@ -143,5 +153,41 @@ func TestItemServiceTranslatesRepositoryErrors(t *testing.T) {
 				t.Fatalf("error = %v, want %v", err, tt.expected)
 			}
 		})
+	}
+}
+
+func TestItemServiceChecksNormalizedSKUAvailability(t *testing.T) {
+	excludedID := uuid.New()
+	store := &itemStoreStub{availabilityResult: true}
+	service := NewItemService(store)
+
+	result, err := service.CheckSKUAvailability(context.Background(), models.SKUAvailabilityInput{
+		SKU:       "  sku-001  ",
+		ExcludeID: &excludedID,
+	})
+	if err != nil {
+		t.Fatalf("CheckSKUAvailability() error = %v, want nil", err)
+	}
+	if store.availabilitySKU != "SKU-001" {
+		t.Fatalf("repository SKU = %q, want %q", store.availabilitySKU, "SKU-001")
+	}
+	if store.availabilityExcludeID == nil || *store.availabilityExcludeID != excludedID {
+		t.Fatalf("repository exclude ID = %v, want %s", store.availabilityExcludeID, excludedID)
+	}
+	if result.SKU != "SKU-001" || !result.Available {
+		t.Fatalf("availability = %#v, want available SKU-001", result)
+	}
+}
+
+func TestItemServiceWrapsSKUAvailabilityRepositoryError(t *testing.T) {
+	store := &itemStoreStub{availabilityErr: errors.New("database unavailable")}
+	service := NewItemService(store)
+
+	result, err := service.CheckSKUAvailability(context.Background(), models.SKUAvailabilityInput{SKU: "SKU-001"})
+	if err == nil {
+		t.Fatal("CheckSKUAvailability() error = nil, want error")
+	}
+	if result != (models.SKUAvailability{}) {
+		t.Fatalf("availability = %#v, want zero value", result)
 	}
 }

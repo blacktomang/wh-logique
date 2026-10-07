@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: WH Logique API
-  version: 0.2.0
+  version: 0.3.0
 paths:
   /api/v1/locations:
     get:
@@ -83,6 +83,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ItemListResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/items/sku-availability:
+    get:
+      summary: Check SKU availability
+      description: Checks exact SKU availability after trimming and uppercasing it. Soft-deleted items continue to reserve their SKUs. Pass the current item ID when checking an edit so that item is excluded.
+      tags: [items]
+      parameters:
+        - name: sku
+          in: query
+          required: true
+          description: SKU to normalize and check.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - name: exclude_id
+          in: query
+          required: false
+          description: Current item UUID to exclude while editing.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: SKU availability checked successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SKUAvailabilityResponse"
         "400":
           $ref: "#/components/responses/InvalidRequest"
         "500":
@@ -381,6 +413,29 @@ components:
             $ref: "#/components/schemas/Item"
         meta:
           $ref: "#/components/schemas/PaginationMeta"
+    SKUAvailability:
+      type: object
+      required: [sku, available]
+      properties:
+        sku:
+          type: string
+          example: RM-001
+          description: Trimmed, uppercase SKU used for the exact check.
+        available:
+          type: boolean
+          example: true
+    SKUAvailabilityResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: SKU availability checked successfully
+        data:
+          $ref: "#/components/schemas/SKUAvailability"
     DeleteItemResponse:
       type: object
       required: [success, message]

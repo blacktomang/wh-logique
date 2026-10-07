@@ -20,6 +20,7 @@ var (
 type ItemStore interface {
 	Create(ctx context.Context, input models.CreateItemInput) (models.Item, error)
 	List(ctx context.Context, input models.ListItemsInput) ([]models.Item, int64, error)
+	IsSKUAvailable(ctx context.Context, sku string, excludeID *uuid.UUID) (bool, error)
 	GetByID(ctx context.Context, id uuid.UUID) (models.Item, error)
 	Update(ctx context.Context, input models.UpdateItemInput) (models.Item, error)
 	SoftDelete(ctx context.Context, id uuid.UUID) error
@@ -54,6 +55,16 @@ func (s *ItemService) List(ctx context.Context, input models.ListItemsInput) ([]
 	}
 
 	return items, total, nil
+}
+
+func (s *ItemService) CheckSKUAvailability(ctx context.Context, input models.SKUAvailabilityInput) (models.SKUAvailability, error) {
+	normalizedSKU := normalizeSKU(input.SKU)
+	available, err := s.repository.IsSKUAvailable(ctx, normalizedSKU, input.ExcludeID)
+	if err != nil {
+		return models.SKUAvailability{}, fmt.Errorf("check SKU availability: %w", err)
+	}
+
+	return models.SKUAvailability{SKU: normalizedSKU, Available: available}, nil
 }
 
 func (s *ItemService) GetByID(ctx context.Context, id uuid.UUID) (models.Item, error) {

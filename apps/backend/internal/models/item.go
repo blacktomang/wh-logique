@@ -60,3 +60,13 @@ type ListItemsInput struct {
 	Page     int
 	Limit    int
 }
+
+type SKUAvailabilityInput struct {
+	SKU       string
+	ExcludeID *uuid.UUID
+}
+
+type SKUAvailability struct {
+	SKU       string `json:"sku"`
+	Available bool   `json:"available"`
+}

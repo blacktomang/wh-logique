@@ -45,6 +45,7 @@ var allowedItemUnits = []string{
 type ItemService interface {
 	Create(ctx context.Context, input models.CreateItemInput) (models.Item, error)
 	List(ctx context.Context, input models.ListItemsInput) ([]models.Item, int64, error)
+	CheckSKUAvailability(ctx context.Context, input models.SKUAvailabilityInput) (models.SKUAvailability, error)
 	GetByID(ctx context.Context, id uuid.UUID) (models.Item, error)
 	Update(ctx context.Context, input models.UpdateItemInput) (models.Item, error)
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -131,6 +132,33 @@ func (h *ItemHandler) List(c *gin.Context) {
 		items,
 		response.PaginationMeta{Page: input.Page, Limit: input.Limit, Total: total},
 	)
+}
+
+// CheckSKUAvailability reports whether a normalized SKU can be used.
+// @Summary Check SKU availability
+// @Description Checks exact SKU availability, including SKUs reserved by soft-deleted items. An item ID can be excluded while editing.
+// @Tags items
+// @Produce json
+// @Param sku query string true "SKU to check" maxlength(64)
+// @Param exclude_id query string false "Current item ID to exclude" format(uuid)
+// @Success 200 {object} response.Envelope
+// @Failure 400 {object} response.Envelope
+// @Failure 500 {object} response.Envelope
+// @Router /api/v1/items/sku-availability [get]
+func (h *ItemHandler) CheckSKUAvailability(c *gin.Context) {
+	input, details := bindSKUAvailabilityInput(c)
+	if len(details) > 0 {
+		response.Error(c, http.StatusBadRequest, "Invalid request", details)
+		return
+	}
+
+	availability, err := h.service.CheckSKUAvailability(c.Request.Context(), input)
+	if err != nil {
+		c.Error(apperrors.New(http.StatusInternalServerError, "Failed to check SKU availability", err))
+		return
+	}
+
+	response.Success(c, http.StatusOK, "SKU availability checked successfully", availability)
 }
 
 // Get returns one active item.
@@ -281,6 +309,29 @@ func bindItemListInput(c *gin.Context) (models.ListItemsInput, []response.ErrorD
 	}
 
 	return models.ListItemsInput{Search: search, Category: category, Page: page, Limit: limit}, details
+}
+
+func bindSKUAvailabilityInput(c *gin.Context) (models.SKUAvailabilityInput, []response.ErrorDetail) {
+	sku, skuDetail := validation.RequiredString("sku", c.Query("sku"), 64)
+	details := make([]response.ErrorDetail, 0, 2)
+	if skuDetail != nil {
+		details = append(details, *skuDetail)
+	}
+
+	var excludeID *uuid.UUID
+	if value, exists := c.GetQuery("exclude_id"); exists {
+		parsed, err := uuid.Parse(strings.TrimSpace(value))
+		if err != nil {
+			details = append(details, response.ErrorDetail{
+				Field:  "exclude_id",
+				Reason: "Must be a valid UUID",
+			})
+		} else {
+			excludeID = &parsed
+		}
+	}
+
+	return models.SKUAvailabilityInput{SKU: sku, ExcludeID: excludeID}, details
 }
 
 func positiveIntQuery(c *gin.Context, field string, defaultValue, maximum int) (int, *response.ErrorDetail) {

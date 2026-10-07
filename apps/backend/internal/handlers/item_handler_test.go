@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -19,14 +20,18 @@ import (
 )
 
 type itemServiceStub struct {
-	createCalls int
-	updateCalls int
-	getCalls    int
-	deleteCalls int
-	createErr   error
-	updateErr   error
-	getErr      error
-	deleteErr   error
+	createCalls        int
+	updateCalls        int
+	getCalls           int
+	deleteCalls        int
+	availabilityCalls  int
+	availabilityInput  models.SKUAvailabilityInput
+	availabilityResult models.SKUAvailability
+	availabilityErr    error
+	createErr          error
+	updateErr          error
+	getErr             error
+	deleteErr          error
 }
 
 func (s *itemServiceStub) Create(context.Context, models.CreateItemInput) (models.Item, error) {
@@ -36,6 +41,12 @@ func (s *itemServiceStub) Create(context.Context, models.CreateItemInput) (model
 
 func (s *itemServiceStub) List(context.Context, models.ListItemsInput) ([]models.Item, int64, error) {
 	return nil, 0, nil
+}
+
+func (s *itemServiceStub) CheckSKUAvailability(_ context.Context, input models.SKUAvailabilityInput) (models.SKUAvailability, error) {
+	s.availabilityCalls++
+	s.availabilityInput = input
+	return s.availabilityResult, s.availabilityErr
 }
 
 func (s *itemServiceStub) GetByID(context.Context, uuid.UUID) (models.Item, error) {
@@ -222,6 +233,76 @@ func TestItemHandlerReturnsNotFoundForMissingItem(t *testing.T) {
 	}
 }
 
+func TestItemHandlerChecksSKUAvailability(t *testing.T) {
+	excludedID := uuid.New()
+	service := &itemServiceStub{
+		availabilityResult: models.SKUAvailability{SKU: "SKU-001", Available: true},
+	}
+	recorder := performItemRequest(
+		t,
+		service,
+		http.MethodGet,
+		"/items/sku-availability?sku=%20sku-001%20&exclude_id="+excludedID.String(),
+		"",
+	)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", recorder.Code, http.StatusOK, recorder.Body.String())
+	}
+	if service.availabilityCalls != 1 {
+		t.Fatalf("service CheckSKUAvailability() calls = %d, want 1", service.availabilityCalls)
+	}
+	if service.availabilityInput.SKU != "sku-001" {
+		t.Fatalf("service SKU = %q, want %q", service.availabilityInput.SKU, "sku-001")
+	}
+	if service.availabilityInput.ExcludeID == nil || *service.availabilityInput.ExcludeID != excludedID {
+		t.Fatalf("service exclude ID = %v, want %s", service.availabilityInput.ExcludeID, excludedID)
+	}
+
+	var envelope struct {
+		Success bool                   `json:"success"`
+		Message string                 `json:"message"`
+		Data    models.SKUAvailability `json:"data"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &envelope); err != nil {
+		t.Fatalf("decode response envelope: %v; body = %s", err, recorder.Body.String())
+	}
+	if !envelope.Success || envelope.Data.SKU != "SKU-001" || !envelope.Data.Available {
+		t.Fatalf("response = %#v, want available SKU-001", envelope)
+	}
+}
+
+func TestItemHandlerRejectsInvalidSKUAvailabilityQuery(t *testing.T) {
+	tests := []struct {
+		name          string
+		path          string
+		expectedField string
+	}{
+		{name: "missing SKU", path: "/items/sku-availability", expectedField: "sku"},
+		{name: "blank SKU", path: "/items/sku-availability?sku=%20%20", expectedField: "sku"},
+		{name: "SKU too long", path: "/items/sku-availability?sku=" + strings.Repeat("A", 65), expectedField: "sku"},
+		{name: "invalid exclude ID", path: "/items/sku-availability?sku=SKU-001&exclude_id=invalid", expectedField: "exclude_id"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service := &itemServiceStub{}
+			recorder := performItemRequest(t, service, http.MethodGet, tt.path, "")
+
+			if recorder.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d, want %d; body = %s", recorder.Code, http.StatusBadRequest, recorder.Body.String())
+			}
+			if service.availabilityCalls != 0 {
+				t.Fatalf("service CheckSKUAvailability() calls = %d, want 0", service.availabilityCalls)
+			}
+			envelope := decodeEnvelope(t, recorder)
+			if !hasErrorField(envelope.Errors, tt.expectedField) {
+				t.Fatalf("errors = %#v, want field %q", envelope.Errors, tt.expectedField)
+			}
+		})
+	}
+}
+
 func performItemRequest(t *testing.T, service ItemService, method, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
@@ -230,6 +311,7 @@ func performItemRequest(t *testing.T, service ItemService, method, path, body st
 	router := gin.New()
 	router.Use(middleware.ErrorHandler(zap.NewNop()))
 	router.POST("/items", handler.Create)
+	router.GET("/items/sku-availability", handler.CheckSKUAvailability)
 	router.GET("/items/:id", handler.Get)
 	router.PUT("/items/:id", handler.Update)
 	router.DELETE("/items/:id", handler.Delete)

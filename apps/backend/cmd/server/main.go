@@ -70,6 +70,7 @@ func main() {
 	api.GET("/locations", locationHandler.List)
 	api.POST("/items", itemHandler.Create)
 	api.GET("/items", itemHandler.List)
+	api.GET("/items/sku-availability", itemHandler.CheckSKUAvailability)
 	api.GET("/items/:id", itemHandler.Get)
 	api.PUT("/items/:id", itemHandler.Update)
 	api.DELETE("/items/:id", itemHandler.Delete)

@@ -176,6 +176,7 @@ All endpoints are prefixed with `/api/v1`.
 | `GET` | `/locations` | List seeded warehouse locations |
 | `POST` | `/items` | Create an item |
 | `GET` | `/items` | Search, filter, and paginate active items |
+| `GET` | `/items/sku-availability` | Check exact SKU availability for create or edit |
 | `GET` | `/items/{id}` | Get an active item |
 | `PUT` | `/items/{id}` | Update an active item |
 | `DELETE` | `/items/{id}` | Soft-delete an item |

@@ -115,6 +115,29 @@ func (r *ItemRepository) List(ctx context.Context, input models.ListItemsInput) 
 	return items, total, nil
 }
 
+func (r *ItemRepository) IsSKUAvailable(ctx context.Context, sku string, excludeID *uuid.UUID) (bool, error) {
+	const query = `
+		SELECT NOT EXISTS (
+			SELECT 1
+			FROM items
+			WHERE sku = $1
+			  AND ($2::uuid IS NULL OR id <> $2)
+		)
+	`
+
+	var excludedID any
+	if excludeID != nil {
+		excludedID = *excludeID
+	}
+
+	var available bool
+	if err := r.db.QueryRow(ctx, query, sku, excludedID).Scan(&available); err != nil {
+		return false, fmt.Errorf("check SKU availability: %w", err)
+	}
+
+	return available, nil
+}
+
 func (r *ItemRepository) GetByID(ctx context.Context, id uuid.UUID) (models.Item, error) {
 	const query = `
 		SELECT id, sku, name, category, unit, created_at, deleted_at
