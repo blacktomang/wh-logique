@@ -1,75 +1,133 @@
 # Warehouse Inventory Management
 
-A compact full-stack warehouse inventory application for managing item master data, warehouse locations, stock balances, and stock receipt history.
+A full-stack warehouse inventory app for managing items, locations, stock balances, and stock receipt history.
 
-The project is a monorepo with a Go REST API, a React/TypeScript dashboard, PostgreSQL persistence, versioned migrations, and a Docker Compose development environment.
+**Stack:** Go + Gin API · React + TypeScript dashboard · PostgreSQL · Docker Compose
 
-> **Reviewer shortcuts:** [Open the live demo](https://wh-logique.syamarif.my.id) · [Run the app with Docker](#quick-start-with-docker) · [Run the verification checks](#verification)
+[Live demo](https://wh-logique.syamarif.my.id) · [Quick start](#quick-start) · [API overview](#api-overview) · [Run checks](#verification)
 
-## Features
+## What it does
 
-### Item management
+- **Manage items:** create, search, filter, edit, view, and soft-delete item records.
+- **Protect SKU integrity:** normalize SKUs, enforce uniqueness, and show availability feedback while editing.
+- **Receive stock:** add one or more item/location quantities in a single atomic operation.
+- **Track inventory:** view current balances per location and an append-only receipt history.
+- **Handle real UI states:** validation, loading skeletons, empty states, errors, and toast feedback.
 
-- Create, list, view, edit, and soft-delete items.
-- Enforce unique, case-normalized SKUs.
-- Search by SKU or name with a 300 ms debounce.
-- Filter by category and browse server-side pagination.
-- Keep the table structure and column headers visible when no items match.
+## Choose a setup
 
-### Stock and locations
+| Option | Best for | Trade-off |
+| --- | --- | --- |
+| [Docker Compose](#quick-start) | Reviewing or trying the complete app quickly | Rebuild the containers to pick up source changes |
+| [Local development](#local-development) | Active backend or frontend development | Requires Go, Node.js, and pnpm locally |
 
-- Browse seeded warehouse locations.
-- Receive stock into a selected location.
-- Increment the existing item/location balance on every receipt.
-- Apply multi-line receipts atomically.
-- Show current stock by location and an append-only receipt log on the item detail page.
+Both options use PostgreSQL in Docker and apply the versioned migrations automatically or through the migration service.
 
-### User experience
+## Quick start
 
-- Responsive dashboard for desktop and tablet layouts.
-- Explicit select controls, form validation, loading states, skeletons, empty states, error handling, and toast feedback.
-- Dedicated pages for item creation, editing, and detail views.
+### Prerequisite
 
-## Technology stack
+- Docker with Docker Compose v2
 
-| Area | Technology |
-| --- | --- |
-| Backend | Go 1.26, Gin, pgx, Zap |
-| Database | PostgreSQL 17 |
-| Frontend | React 18, TypeScript, React Router 6 |
-| Data fetching | TanStack Query 5 |
-| UI | Tailwind CSS 4, Headless UI |
-| API contract | OpenAPI 3.0 |
-| Local environment | Docker, Docker Compose, pnpm |
+### Start the complete application
 
-## Architecture
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Wait for the services to become healthy, then open:
+
+- Dashboard: <http://localhost:3000>
+- API: <http://localhost:8080/api/v1>
+- API contract: [`apps/backend/docs/swagger.yaml`](apps/backend/docs/swagger.yaml)
+
+The database schema and location seed data are applied before the API starts.
+
+### Stop or reset
+
+```bash
+docker compose down
+```
+
+This keeps the PostgreSQL volume. To also erase local database data, run `docker compose down --volumes`.
+
+## Local development
+
+### Prerequisites
+
+- Go 1.26 or later
+- Node.js 20 or later
+- Corepack with pnpm 10.33.0
+- Docker with Docker Compose v2
+
+### 1. Start PostgreSQL and apply migrations
+
+```bash
+cp .env.example .env
+docker compose up -d postgres
+docker compose run --rm migrate
+```
+
+### 2. Start the API
+
+In one terminal:
+
+```bash
+cd apps/backend
+go mod download
+go run ./cmd/server
+```
+
+### 3. Start the dashboard
+
+In another terminal:
+
+```bash
+cd apps/frontend
+corepack enable
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Open <http://localhost:5173>. Vite proxies `/api/v1` to `http://localhost:8080`, so the default setup needs no frontend environment override.
+
+## How the system is organized
+
+```text
+Browser
+  -> React dashboard
+  -> Go HTTP handler       validates transport input
+  -> Service               applies business rules
+  -> Repository            reads and writes PostgreSQL
+```
 
 ```text
 .
 ├── apps
 │   ├── backend
-│   │   ├── cmd/server             # Application entry point and routes
-│   │   ├── docs                   # OpenAPI contract
+│   │   ├── cmd/server          # Entry point and routes
+│   │   ├── docs                # OpenAPI contract
 │   │   ├── internal
-│   │   │   ├── handlers           # HTTP binding and validation
-│   │   │   ├── services           # Business rules
-│   │   │   ├── repository         # PostgreSQL access
-│   │   │   ├── middleware         # Logging, errors, recovery, CORS
+│   │   │   ├── handlers        # HTTP binding and validation
+│   │   │   ├── services        # Business rules
+│   │   │   ├── repository      # PostgreSQL access
+│   │   │   ├── middleware      # Logging, errors, recovery, CORS
 │   │   │   └── models
-│   │   └── migrations             # Versioned schema and seed data
+│   │   └── migrations          # Schema and seed data
 │   └── frontend
 │       └── src
-│           ├── api                # HTTP client and endpoint functions
-│           ├── components         # Shared UI primitives
-│           ├── features           # Feature-level UI
-│           ├── hooks              # Query and form hooks
-│           ├── pages              # Route pages
-│           └── types              # API and domain types
+│           ├── api             # HTTP client and endpoints
+│           ├── components      # Shared UI primitives
+│           ├── features        # Feature-level UI
+│           ├── hooks           # Query and form hooks
+│           ├── pages           # Route pages
+│           └── types           # API and domain types
 ├── docker-compose.yml
-└── package.json                   # Root Docker helper scripts
+└── package.json                # Root Docker helper scripts
 ```
 
-The backend follows `handler -> service -> repository`. Handlers own transport validation, services enforce business invariants, and repositories contain persistence concerns. API responses use a consistent envelope:
+API responses use a consistent envelope:
 
 ```json
 {
@@ -84,120 +142,65 @@ The backend follows `handler -> service -> repository`. Handlers own transport v
 }
 ```
 
-## Quick start with Docker
+## Important behavior
 
-### Prerequisites
-
-- Docker with Docker Compose v2
-
-### Run the application
-
-```bash
-cp .env.example .env
-docker compose up --build
-```
-
-After all services are healthy:
-
-- Dashboard: <http://localhost:3000>
-- API base URL: <http://localhost:8080/api/v1>
-- OpenAPI specification: [`apps/backend/docs/swagger.yaml`](apps/backend/docs/swagger.yaml)
-
-Migrations and location seed data run automatically before the API starts. Stop the stack with:
-
-```bash
-docker compose down
-```
-
-The PostgreSQL volume is retained. To remove it as well, use `docker compose down --volumes` only when the local data is no longer needed.
-
-## Local development
-
-### Prerequisites
-
-- Go 1.26 or later
-- Node.js 20 or later
-- Corepack with pnpm 10.33.0
-- Docker with Docker Compose v2, for PostgreSQL and migrations
-
-Create the environment file and start the database:
-
-```bash
-cp .env.example .env
-docker compose up -d postgres
-docker compose run --rm migrate
-```
-
-Start the backend in one terminal:
-
-```bash
-cd apps/backend
-go mod download
-go run ./cmd/server
-```
-
-Start the frontend in another terminal:
-
-```bash
-cd apps/frontend
-corepack enable
-pnpm install --frozen-lockfile
-pnpm dev
-```
-
-The development dashboard is available at <http://localhost:5173>. Vite proxies `/api/v1` requests to `http://localhost:8080`, so no frontend environment override is required for the default setup.
-
-## Configuration
-
-Copy `.env.example` to `.env` and adjust values when needed.
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `POSTGRES_DB` | `wh_logique` | PostgreSQL database name |
-| `POSTGRES_USER` | `wh_logique` | PostgreSQL user |
-| `POSTGRES_PASSWORD` | `wh_logique_dev` | PostgreSQL password for local development |
-| `POSTGRES_PORT` | `5432` | Host port exposed by PostgreSQL |
-| `APP_ENV` | `development` | Backend runtime mode |
-| `HTTP_PORT` | `8080` | Backend port for direct local execution |
-| `BACKEND_PORT` | `8080` | Host port exposed by the backend container |
-| `DATABASE_URL` | Local PostgreSQL URL | Backend database connection string |
-| `CORS_ALLOWED_ORIGINS` | `*` | Comma-separated allowed origins |
-| `FRONTEND_PORT` | `3000` | Host port exposed by the frontend container |
-| `VITE_API_URL` | `/api/v1` | Frontend API base path |
-
-For a deployed environment, use secret-managed database credentials and restrict `CORS_ALLOWED_ORIGINS` to the expected frontend origin.
+- Item list searches match SKU or name after a 300 ms debounce.
+- Category filters and pagination are server-driven.
+- Deleting an item is a soft delete; its SKU remains reserved.
+- A multi-line stock receipt either commits all balance and log changes or commits none.
+- SKU availability feedback is advisory; the database constraint remains the source of truth.
 
 ## API overview
 
-All endpoints are prefixed with `/api/v1`.
+All endpoints use the `/api/v1` prefix.
 
-| Method | Endpoint | Description |
+| Method | Endpoint | Purpose |
 | --- | --- | --- |
 | `GET` | `/locations` | List seeded warehouse locations |
 | `POST` | `/items` | Create an item |
 | `GET` | `/items` | Search, filter, and paginate active items |
-| `GET` | `/items/sku-availability` | Check exact SKU availability for create or edit |
+| `GET` | `/items/sku-availability` | Check exact SKU availability |
 | `GET` | `/items/{id}` | Get an active item |
 | `PUT` | `/items/{id}` | Update an active item |
 | `DELETE` | `/items/{id}` | Soft-delete an item |
-| `POST` | `/stock/receive` | Increment stock and create receipt log entries |
-| `GET` | `/stock/{item_id}` | Get stock balances by location |
+| `POST` | `/stock/receive` | Receive stock and write receipt logs |
+| `GET` | `/stock/{item_id}` | Get balances by location |
 | `GET` | `/stock/{item_id}/logs` | Get receipt history, newest first |
 
-The complete schemas, parameters, and response definitions are in the [OpenAPI specification](apps/backend/docs/swagger.yaml).
+See the [OpenAPI specification](apps/backend/docs/swagger.yaml) for parameters, schemas, and response definitions.
+
+## Configuration
+
+Copy `.env.example` to `.env`. The defaults are intended for local development.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `POSTGRES_DB` | `wh_logique` | Database name |
+| `POSTGRES_USER` | `wh_logique` | Database user |
+| `POSTGRES_PASSWORD` | `wh_logique_dev` | Local database password |
+| `POSTGRES_PORT` | `5432` | PostgreSQL host port |
+| `APP_ENV` | `development` | Backend runtime mode |
+| `HTTP_PORT` | `8080` | Backend port for direct local execution |
+| `BACKEND_PORT` | `8080` | Backend container host port |
+| `DATABASE_URL` | Local PostgreSQL URL | Backend connection string |
+| `CORS_ALLOWED_ORIGINS` | `*` | Comma-separated allowed origins |
+| `FRONTEND_PORT` | `3000` | Frontend container host port |
+| `VITE_API_URL` | `/api/v1` | Frontend API base path |
+
+For deployment, use secret-managed database credentials and restrict `CORS_ALLOWED_ORIGINS` to the expected frontend origin.
 
 ## Verification
 
-Run the backend tests that cover the assignment's handler and business-rule requirements:
+### Backend tests
 
 ```bash
 cd apps/backend
 go test -v -cover ./internal/handlers ./internal/services
 ```
 
-These unit tests cover handler-level input validation, duplicate-SKU `409` responses, missing-item `404` responses, SKU normalization, repository-to-service error translation, and rejection of zero or negative stock receipts. The verbose output lists each requirement-focused test, while `-cover` reports coverage for both packages.
+These tests cover handler validation, duplicate-SKU `409` responses, missing-item `404` responses, SKU normalization, service error translation, and rejection of non-positive stock receipts.
 
-Run frontend static checks and a production build:
+### Frontend checks
 
 ```bash
 cd apps/frontend
@@ -207,43 +210,27 @@ pnpm build
 
 ## Design decisions and trade-offs
 
-### Atomic stock receipt and audit log
+| Decision | Why it helps | Cost / trade-off | If the system grows |
+| --- | --- | --- | --- |
+| Transactional balance and receipt-log writes | A successful response guarantees inventory and its audit record agree | Synchronous writes add latency and depend on PostgreSQL transaction/upsert behavior | Add log pagination and retention; use a durable queue with retries and idempotency only if async processing becomes necessary |
+| Soft-delete items while reserving SKUs | Preserves identity and historical references | A deleted SKU cannot be reused | Add an explicit restore or administrative purge workflow |
+| Server-side search, filtering, and pagination | Avoids downloading the full catalog and scales with catalog size | More request state and loading transitions in the UI | Add indexed search and tune caching for larger datasets |
+| Debounced SKU availability check | Gives earlier feedback and avoids many failed submissions | Adds an endpoint and extra requests; results can become stale before save | Keep the database uniqueness constraint and submit-time `409` as the source of truth |
+| One-shot, versioned migration container | Makes schema setup repeatable without a locally installed migration CLI | Adds a startup dependency; the API stays unavailable after a failed migration | Add deployment migration checks, backups, and rollback procedures |
 
-A stock receipt uses a PostgreSQL transaction to increment balances and insert append-only log rows together. The log write is deliberately synchronous and transaction-bound rather than dispatched to a goroutine, so a successful response guarantees that both the balance and its audit record were committed. This prioritizes consistency and straightforward failure handling over the lower request latency an asynchronous approach could provide. The trade-off is tighter coupling to PostgreSQL transaction and upsert behavior, and the log table will require retention or pagination work at larger scale. At higher throughput, asynchronous logging would require a durable queue, retry handling, and idempotency safeguards rather than an untracked background goroutine.
+## Known limitations
 
-### Soft deletion with reserved SKUs
-
-Deleting an item sets `deleted_at`; default item queries exclude deleted rows. The database uniqueness constraint still reserves the SKU. This preserves identity and audit history, but reusing a SKU would require an *explicit restore or administrative purge workflow*.
-
-### Server-driven list state
-
-Search, category filtering, and pagination are handled by the API, while TanStack Query caches each parameter combination. This scales better than downloading the complete catalog and the 300 ms debounce limits search traffic. It also introduces request-state complexity and means a filter change may briefly show a loading transition.
-
-### Advisory SKU availability feedback
-
-The create and edit forms check exact SKU availability after a short debounce, cancel stale requests, and show checking, available, unavailable, or fallback states next to the field. This gives users earlier feedback and avoids unnecessary failed submissions, at the cost of an additional endpoint, request-state handling, and extra network calls while editing. The check is intentionally advisory because availability can change between checking and saving; the database uniqueness constraint and submit-time `409 Conflict` response remain the source of truth.
-
-### Containerized, versioned migrations
-
-Database migrations run in a dedicated one-shot Docker service before the backend starts. Reviewers and maintainers therefore do not need to install a migration CLI or decide which SQL files to execute manually: the pinned migration tool applies every pending version in order. The same workflow is useful during development because the schema history is repeatable and remains synchronized across environments. The trade-off is an additional container and startup dependency; if a migration fails, the backend intentionally remains unavailable until the migration problem is resolved.
-
-## Known limitations and next steps
-
-- Automated coverage currently focuses on backend handlers and services; repository integration tests and frontend component/end-to-end coverage remain future work.
-- Stock log responses are not paginated yet.
-- The implemented inventory movement is inbound receipt only; outbound, adjustment, and transfer workflows are not included.
-- Authentication and authorization are not included in the current scope.
+- Tests currently focus on backend handlers and services; repository integration and frontend component/end-to-end tests are not included.
+- Stock receipt logs are not paginated.
+- Inventory movements support inbound receipts only, not outbound, adjustment, or transfer workflows.
+- Authentication and authorization are outside the current scope.
 
 ## AI-assisted development disclosure
 
-I do not have professional Go experience, so I began by reading [Understanding the Layered Architecture Pattern: A Comprehensive Guide](https://dev.to/yasmine_ddec94f4d4/understanding-the-layered-architecture-pattern-a-comprehensive-guide-1e2j). I then studied [Sanoy24/gin-rest-api-project-structure](https://github.com/Sanoy24/gin-rest-api-project-structure) as a practical Go and Gin reference that demonstrated the pattern clearly. Based on that research and the technical-test requirements, I defined the initial backend folder structure and created `CLAUDE.md` as a project-level engineering guide for the AI-assisted workflow.
+I do not have professional Go experience, so I first studied a [layered architecture guide](https://dev.to/yasmine_ddec94f4d4/understanding-the-layered-architecture-pattern-a-comprehensive-guide-1e2j) and [Sanoy24/gin-rest-api-project-structure](https://github.com/Sanoy24/gin-rest-api-project-structure). I used that research and the technical-test requirements to define the initial backend structure and the project rules in `CLAUDE.md`.
 
-AI generated an estimated 80% of the codebase. This is an approximate contribution estimate, not a line-by-line measurement. The generated work was directed by the architecture, stack, constraints, and implementation rules documented in `CLAUDE.md`. OpenAI Codex was also used for pair programming and review, including the dashboard redesign, stock workflow and log integration, requirement auditing, requirement-focused backend unit tests, verification, and README drafting.
+AI generated an estimated 80% of the codebase; this is an approximate contribution estimate, not a line-by-line measurement. AI assisted with implementation and review, including the dashboard redesign, stock workflow and logs, requirement auditing, backend unit tests, verification, and README drafting.
 
-My direct contributions included the initial architectural research and project structure, defining and refining the AI instructions, integrating the generated work, and reviewing and correcting implementations that did not meet the intended behavior. Examples of manual corrections include the loading-spinner and toast behavior, as well as backend request validation. When the initial generated backend code did not validate input in the handler layer as required, I corrected the implementation and added explicit handler-validation rules to `CLAUDE.md` so subsequent work would follow the same requirement.
+My direct work included the initial research and architecture, defining and refining AI instructions, integrating generated code, and reviewing and correcting behavior. Manual corrections included loading-spinner and toast behavior and backend request validation. After generated code placed validation outside the required handler layer, I fixed it and added explicit validation rules to `CLAUDE.md`.
 
-AI output was treated as implementation assistance rather than an authority on the requirements. The technical-test specification and the project engineering guide remained the source of truth when generated code and required behavior differed.
-
-## Submission checklist
-
-- [ ] Run the verification commands above from a clean checkout.
+The technical-test specification and project engineering guide remained the source of truth whenever generated output differed from the required behavior.
