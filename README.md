@@ -206,17 +206,13 @@ pnpm build
 
 ## Design decisions and trade-offs
 
-### Layered backend
-
-HTTP, business logic, and persistence are separated into handler, service, and repository layers. This adds interfaces and some boilerplate to a compact project, but keeps validation rules independently testable and makes storage or transport changes less invasive.
-
 ### Atomic stock receipt and audit log
 
 A stock receipt uses a PostgreSQL transaction to increment balances and insert append-only log rows together. The log write is deliberately synchronous and transaction-bound rather than dispatched to a goroutine, so a successful response guarantees that both the balance and its audit record were committed. This prioritizes consistency and straightforward failure handling over the lower request latency an asynchronous approach could provide. The trade-off is tighter coupling to PostgreSQL transaction and upsert behavior, and the log table will require retention or pagination work at larger scale. At higher throughput, asynchronous logging would require a durable queue, retry handling, and idempotency safeguards rather than an untracked background goroutine.
 
 ### Soft deletion with reserved SKUs
 
-Deleting an item sets `deleted_at`; default item queries exclude deleted rows. The database uniqueness constraint still reserves the SKU. This preserves identity and audit history, but reusing a SKU would require an explicit restore or administrative purge workflow.
+Deleting an item sets `deleted_at`; default item queries exclude deleted rows. The database uniqueness constraint still reserves the SKU. This preserves identity and audit history, but reusing a SKU would require an *explicit restore or administrative purge workflow*.
 
 ### Server-driven list state
 
