@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useItemForm } from "../../hooks/useItemForm";
-import { ErrorAlert } from "../../components/ErrorAlert";
 import { Button } from "../../components/Button";
 import { FormField } from "../../components/FormField";
 import { Input, Select } from "../../components/Field";
@@ -19,9 +18,6 @@ export function ItemForm({ initial }: ItemFormProps) {
     form,
     fieldErrors,
     isPending,
-    success,
-    error,
-    errorDetails,
     createdId,
     updateField,
     handleSubmit,
@@ -29,18 +25,6 @@ export function ItemForm({ initial }: ItemFormProps) {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="grid gap-5 sm:grid-cols-2">
-      {success && (
-        <div
-          role="status"
-          className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900 sm:col-span-2"
-        >
-          {success}
-        </div>
-      )}
-      {error && (
-        <div className="sm:col-span-2"><ErrorAlert message={error} {...(errorDetails ? { details: errorDetails } : {})} /></div>
-      )}
-
       <FormField label="SKU" id="sku" error={fieldErrors.sku}>
         <Input
           value={form.sku}

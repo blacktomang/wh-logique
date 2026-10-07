@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useCreateItem, useUpdateItem } from "./useItems";
-import { ApiError } from "../api/client";
-import type { ErrorDetail } from "../types/api";
+import { errorDescription, errorMessage } from "./useErrorToast";
+import { useToast } from "../contexts/toast";
 import type { Item, ItemCategory, ItemInput, ItemUnit } from "../types/item";
 
 export interface ItemFormValues {
@@ -20,6 +20,7 @@ const requiredMessage = "This field is required";
 
 export function useItemForm(initial?: Item) {
   const isEditing = Boolean(initial);
+  const toast = useToast();
 
   const createMutation = useCreateItem();
   const updateMutation = useUpdateItem(initial?.id ?? "");
@@ -32,11 +33,6 @@ export function useItemForm(initial?: Item) {
   });
 
   const [fieldErrors, setFieldErrors] = useState<ItemFormFieldErrors>({});
-  const [error, setError] = useState<string | null>(null);
-  const [errorDetails, setErrorDetails] = useState<ErrorDetail[] | undefined>(
-    undefined,
-  );
-  const [success, setSuccess] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
 
   function updateField<K extends ItemFormFieldName>(
@@ -78,33 +74,26 @@ export function useItemForm(initial?: Item) {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    setError(null);
-    setErrorDetails(undefined);
-    setSuccess(null);
     setCreatedId(null);
 
     const { input, errors } = validate();
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
+      toast.error("Check the item details", "Complete all required fields before saving.");
       return;
     }
 
     try {
       if (isEditing && initial) {
         const envelope = await updateMutation.mutateAsync(input);
-        setSuccess(envelope.message || "Item updated successfully");
+        toast.success(envelope.message || "Item updated successfully");
       } else {
         const envelope = await createMutation.mutateAsync(input);
-        setSuccess(envelope.message || "Item created successfully");
+        toast.success(envelope.message || "Item created successfully");
         if (envelope.data?.id) setCreatedId(envelope.data.id);
       }
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-        setErrorDetails(err.details.length > 0 ? err.details : undefined);
-      } else {
-        setError("Failed to save item");
-      }
+      toast.error(errorMessage(err, "Failed to save item"), errorDescription(err));
     }
   }
 
@@ -115,9 +104,6 @@ export function useItemForm(initial?: Item) {
     form,
     fieldErrors,
     isPending,
-    success,
-    error,
-    errorDetails,
     createdId,
     updateField,
     handleSubmit,

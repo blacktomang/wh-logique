@@ -4,6 +4,8 @@ import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { useItem, useDeleteItem } from "../hooks/useItems";
 import { useLocations } from "../hooks/useLocations";
 import { useItemStock, useItemStockLogs, useReceiveStock } from "../hooks/useStock";
+import { errorDescription, errorMessage, useErrorToast } from "../hooks/useErrorToast";
+import { useToast } from "../contexts/toast";
 import { ApiError } from "../api/client";
 import { Spinner } from "../components/Spinner";
 import { ErrorAlert } from "../components/ErrorAlert";
@@ -19,6 +21,7 @@ export function ItemDetailPage() {
   const { id = "" } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const toast = useToast();
   const itemQuery = useItem(id);
   const stockQuery = useItemStock(id);
   const stockLogsQuery = useItemStockLogs(id);
@@ -30,6 +33,11 @@ export function ItemDetailPage() {
   const [locationId, setLocationId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [fieldErrors, setFieldErrors] = useState<{ location?: string; quantity?: string }>({});
+
+  useErrorToast(itemQuery.error, "Failed to load item");
+  useErrorToast(stockQuery.error, "Failed to load stock");
+  useErrorToast(stockLogsQuery.error, "Failed to load stock log");
+  useErrorToast(locationsQuery.error, "Failed to load locations");
 
   if (itemQuery.isPending || stockQuery.isPending || stockLogsQuery.isPending || locationsQuery.isPending) return <Spinner />;
   if (itemQuery.isError) return <ErrorAlert message={itemQuery.error instanceof ApiError ? itemQuery.error.message : "Failed to load item"} />;
@@ -44,8 +52,13 @@ export function ItemDetailPage() {
   const totalStock = stocks.reduce((sum, stock) => sum + stock.qty, 0);
 
   async function handleDelete() {
-    await deleteMutation.mutateAsync(item!.id);
-    navigate(paths.items);
+    try {
+      const response = await deleteMutation.mutateAsync(item!.id);
+      toast.success(response.message || "Item deleted successfully");
+      navigate(paths.items);
+    } catch (error) {
+      toast.error(errorMessage(error, "Failed to delete item"), errorDescription(error));
+    }
   }
 
   function closeRestock() {
@@ -67,15 +80,19 @@ export function ItemDetailPage() {
     else if (!Number.isInteger(qty) || qty < 1) errors.quantity = "Quantity must be a positive whole number";
 
     setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) return;
+    if (Object.keys(errors).length > 0) {
+      toast.error("Check the receipt details", "Select a location and enter a positive whole number.");
+      return;
+    }
 
     try {
-      await receiveMutation.mutateAsync({
+      const response = await receiveMutation.mutateAsync({
         lines: [{ item_id: item!.id, location_id: locationId, qty }],
       });
       closeRestock();
-    } catch {
-      // The mutation error is rendered in the dialog.
+      toast.success(response.message || "Stock received successfully");
+    } catch (error) {
+      toast.error(errorMessage(error, "Failed to receive stock"), errorDescription(error));
     }
   }
 
@@ -220,13 +237,6 @@ export function ItemDetailPage() {
         description={`Add incoming stock for ${item.sku} to a warehouse location.`}
       >
         <form onSubmit={handleRestock} noValidate className="grid gap-5">
-          {receiveMutation.error && (
-            <ErrorAlert
-              message={receiveMutation.error instanceof ApiError ? receiveMutation.error.message : "Failed to receive stock"}
-              {...(receiveMutation.error instanceof ApiError && receiveMutation.error.details.length > 0 ? { details: receiveMutation.error.details } : {})}
-            />
-          )}
-
           <FormField label="Location" id="location" error={fieldErrors.location}>
             <Select
               value={locationId}

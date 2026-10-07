@@ -5,11 +5,13 @@ import { PageHeader } from "../components/PageHeader";
 import { Spinner } from "../components/Spinner";
 import { ItemForm } from "../features/items/ItemForm";
 import { useItem } from "../hooks/useItems";
+import { useErrorToast } from "../hooks/useErrorToast";
 import { paths } from "../router/paths";
 
 export function ItemEditPage() {
   const { id = "" } = useParams();
   const { data, isPending, isError, error } = useItem(id);
+  useErrorToast(error, "Failed to load item");
 
   if (isPending) return <Spinner />;
   if (isError) return <ErrorAlert message={error instanceof ApiError ? error.message : "Failed to load item"} />;

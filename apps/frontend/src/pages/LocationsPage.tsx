@@ -1,4 +1,5 @@
 import { useLocations } from "../hooks/useLocations";
+import { useErrorToast } from "../hooks/useErrorToast";
 import { ApiError } from "../api/client";
 import { Spinner } from "../components/Spinner";
 import { ErrorAlert } from "../components/ErrorAlert";
@@ -8,6 +9,7 @@ import { formatLabel } from "../utils/format";
 
 export function LocationsPage() {
   const { data, isPending, isError, error } = useLocations();
+  useErrorToast(error, "Failed to load locations");
 
   if (isPending) return <Spinner />;
   if (isError) {

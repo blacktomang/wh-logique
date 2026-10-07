@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useItems, useDeleteItem } from "../../hooks/useItems";
 import { ApiError } from "../../api/client";
+import { errorDescription, errorMessage, useErrorToast } from "../../hooks/useErrorToast";
+import { useToast } from "../../contexts/toast";
 import { Spinner } from "../../components/Spinner";
 import { ErrorAlert } from "../../components/ErrorAlert";
 import { Button } from "../../components/Button";
@@ -17,6 +19,7 @@ const PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
 
 export function ItemList() {
+  const toast = useToast();
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<ItemCategory | undefined>(undefined);
@@ -39,6 +42,7 @@ export function ItemList() {
   };
   const { data, isPending, isError, error } = useItems(params);
   const deleteMutation = useDeleteItem();
+  useErrorToast(error, "Failed to load items");
 
   const items = data?.data ?? [];
   const total = data?.meta?.total ?? 0;
@@ -55,7 +59,11 @@ export function ItemList() {
 
   function handleDelete() {
     if (!pendingDelete) return;
-    deleteMutation.mutate(pendingDelete, { onSettled: () => setPendingDelete(null) });
+    deleteMutation.mutate(pendingDelete, {
+      onSuccess: (response) => toast.success(response.message || "Item deleted successfully"),
+      onError: (mutationError) => toast.error(errorMessage(mutationError, "Failed to delete item"), errorDescription(mutationError)),
+      onSettled: () => setPendingDelete(null),
+    });
   }
 
   if (isPending) return <Spinner />;
