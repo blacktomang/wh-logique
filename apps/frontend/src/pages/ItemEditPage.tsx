@@ -1,0 +1,35 @@
+import { Link, useParams } from "react-router-dom";
+import { ApiError } from "../api/client";
+import { ErrorAlert } from "../components/ErrorAlert";
+import { PageHeader } from "../components/PageHeader";
+import { Spinner } from "../components/Spinner";
+import { ItemForm } from "../features/items/ItemForm";
+import { useItem } from "../hooks/useItems";
+import { paths } from "../router/paths";
+
+export function ItemEditPage() {
+  const { id = "" } = useParams();
+  const { data, isPending, isError, error } = useItem(id);
+
+  if (isPending) return <Spinner />;
+  if (isError) return <ErrorAlert message={error instanceof ApiError ? error.message : "Failed to load item"} />;
+
+  const item = data?.data;
+  if (!item) return <ErrorAlert message="Item not found" />;
+
+  return (
+    <section>
+      <Link to={paths.itemDetail(item.id)} className="mb-6 inline-flex items-center gap-2 rounded-md text-sm font-bold text-sage-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500">
+        <span aria-hidden="true">←</span> Back to item details
+      </Link>
+      <PageHeader eyebrow="Inventory control" title={`Edit ${item.name}`} description="Update the identifying details used for this item." />
+      <div className="max-w-3xl rounded-2xl border border-ink-950/8 bg-paper p-5 shadow-[0_18px_48px_rgb(54_83_66/0.09)] sm:p-7">
+        <div className="mb-6 border-b border-ink-950/10 pb-5">
+          <h2 className="text-lg font-bold tracking-[-0.025em] text-ink-950">Item details</h2>
+          <p className="mt-1 text-sm text-ink-600">The form is prefilled with the current record.</p>
+        </div>
+        <ItemForm initial={item} />
+      </div>
+    </section>
+  );
+}

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useItem, useDeleteItem } from "../hooks/useItems";
+import { useLocations } from "../hooks/useLocations";
+import { useItemStock, useItemStockLogs } from "../hooks/useStock";
 import { ApiError } from "../api/client";
 import { Spinner } from "../components/Spinner";
 import { ErrorAlert } from "../components/ErrorAlert";
@@ -8,21 +10,29 @@ import { Button } from "../components/Button";
 import { Dialog } from "../components/Dialog";
 import { PageHeader } from "../components/PageHeader";
 import { paths } from "../router/paths";
-import { ItemForm } from "../features/items/ItemForm";
 import { formatDate, formatLabel } from "../utils/format";
 
 export function ItemDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { data, isPending, isError, error } = useItem(id);
+  const itemQuery = useItem(id);
+  const stockQuery = useItemStock(id);
+  const stockLogsQuery = useItemStockLogs(id);
+  const locationsQuery = useLocations();
   const deleteMutation = useDeleteItem();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  if (isPending) return <Spinner />;
-  if (isError) return <ErrorAlert message={error instanceof ApiError ? error.message : "Failed to load item"} />;
+  if (itemQuery.isPending || stockQuery.isPending || stockLogsQuery.isPending || locationsQuery.isPending) return <Spinner />;
+  if (itemQuery.isError) return <ErrorAlert message={itemQuery.error instanceof ApiError ? itemQuery.error.message : "Failed to load item"} />;
 
-  const item = data?.data;
+  const item = itemQuery.data?.data;
   if (!item) return <ErrorAlert message="Item not found" />;
+
+  const stocks = stockQuery.data?.data ?? [];
+  const stockLogs = stockLogsQuery.data?.data ?? [];
+  const locations = locationsQuery.data?.data ?? [];
+  const locationById = new Map(locations.map((location) => [location.id, location]));
+  const totalStock = stocks.reduce((sum, stock) => sum + stock.qty, 0);
 
   async function handleDelete() {
     await deleteMutation.mutateAsync(item!.id);
@@ -44,11 +54,17 @@ export function ItemDetailPage() {
       <PageHeader
         eyebrow="Item record"
         title={item.name}
-        description="Review the current item record or update its warehouse details."
-        action={<Button variant="danger" onClick={() => setConfirmDelete(true)}>Delete item</Button>}
+        description="Review identifying information and stock balances across warehouse locations."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Link to={paths.itemRestock(item.id)}><Button>Restock</Button></Link>
+            <Link to={paths.itemEdit(item.id)}><Button variant="secondary">Edit item</Button></Link>
+            <Button variant="danger" onClick={() => setConfirmDelete(true)}>Delete</Button>
+          </div>
+        }
       />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(28rem,1.28fr)] lg:items-start">
+      <div className="grid gap-6 lg:grid-cols-[minmax(18rem,0.65fr)_minmax(0,1.35fr)] lg:items-start">
         <aside className="overflow-hidden rounded-2xl bg-ink-950 text-white shadow-[0_20px_50px_rgb(23_32_31/0.2)]">
           <div className="border-b border-white/10 px-6 py-5">
             <p className="text-[0.68rem] font-bold tracking-[0.14em] text-amber-400 uppercase">At a glance</p>
@@ -64,23 +80,101 @@ export function ItemDetailPage() {
           </dl>
         </aside>
 
-        <div className="rounded-2xl border border-ink-950/8 bg-paper p-5 shadow-[0_18px_48px_rgb(54_83_66/0.09)] sm:p-7">
-          <div className="mb-6 border-b border-ink-950/10 pb-5">
-            <p className="text-[0.68rem] font-bold tracking-[0.14em] text-sage-700 uppercase">Edit record</p>
-            <h2 className="mt-1 text-xl font-bold tracking-[-0.025em] text-ink-950">Item details</h2>
-            <p className="mt-1 text-sm text-ink-600">Changes are applied to this item only.</p>
+        <div className="overflow-hidden rounded-2xl border border-ink-950/8 bg-paper shadow-[0_18px_48px_rgb(54_83_66/0.09)]">
+          <div className="flex flex-col justify-between gap-4 border-b border-ink-950/10 px-5 py-5 sm:flex-row sm:items-end sm:px-6">
+            <div>
+              <p className="text-[0.68rem] font-bold tracking-[0.14em] text-sage-700 uppercase">Inventory balance</p>
+              <h2 className="mt-1 text-xl font-bold tracking-[-0.025em] text-ink-950">Stock by location</h2>
+            </div>
+            <div className="text-left sm:text-right">
+              <p className="font-mono text-2xl font-bold tabular-nums text-ink-950">{totalStock}</p>
+              <p className="text-xs font-semibold text-ink-600">total {item.unit}</p>
+            </div>
           </div>
-          <ItemForm initial={item} />
+
+          {stockQuery.isError ? (
+            <div className="p-5"><ErrorAlert message={stockQuery.error instanceof ApiError ? stockQuery.error.message : "Failed to load stock"} /></div>
+          ) : stocks.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <p className="font-bold text-ink-950">No stock received yet</p>
+              <p className="mt-1.5 text-sm text-ink-600">Receive stock to assign quantity to a warehouse location.</p>
+              <Link to={paths.itemRestock(item.id)} className="mt-5 inline-block"><Button>Restock item</Button></Link>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left text-sm">
+                <thead className="border-b border-ink-950/8 bg-sage-50/60 text-ink-600">
+                  <tr>
+                    {['Location', 'Zone', 'Quantity', 'Updated'].map((heading) => <th key={heading} className="px-5 py-3 text-[0.68rem] font-bold tracking-[0.09em] uppercase">{heading}</th>)}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink-950/7">
+                  {stocks.map((stock) => {
+                    const location = locationById.get(stock.location_id);
+                    return (
+                      <tr key={stock.id}>
+                        <td className="px-5 py-4 font-mono text-xs font-bold text-ink-950">{location?.code ?? stock.location_id}</td>
+                        <td className="px-5 py-4 text-ink-800">{location?.zone ?? "—"}</td>
+                        <td className="px-5 py-4 font-mono font-bold tabular-nums text-ink-950">{stock.qty} <span className="font-sans text-xs font-medium text-ink-600">{item.unit}</span></td>
+                        <td className="whitespace-nowrap px-5 py-4 text-ink-600">{formatDate(stock.updated_at)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 
-      <Dialog
-        open={confirmDelete}
-        onClose={() => setConfirmDelete(false)}
-        title="Delete item"
-        description={`Remove ${item.name} from active inventory? This action cannot be undone.`}
-        actions={<><Button variant="secondary" onClick={() => setConfirmDelete(false)}>Cancel</Button><Button variant="danger" isLoading={deleteMutation.isPending} onClick={handleDelete}>Delete item</Button></>}
-      />
+      <div className="mt-6 overflow-hidden rounded-2xl border border-ink-950/8 bg-paper shadow-[0_18px_48px_rgb(54_83_66/0.09)]">
+        <div className="flex flex-col justify-between gap-3 border-b border-ink-950/10 px-5 py-5 sm:flex-row sm:items-end sm:px-6">
+          <div>
+            <p className="text-[0.68rem] font-bold tracking-[0.14em] text-sage-700 uppercase">Receipt history</p>
+            <h2 className="mt-1 text-xl font-bold tracking-[-0.025em] text-ink-950">Stock log</h2>
+            <p className="mt-1 text-sm text-ink-600">Every restock is recorded separately, newest first.</p>
+          </div>
+          <p className="font-mono text-xs font-semibold tabular-nums text-ink-600">{stockLogs.length} {stockLogs.length === 1 ? "ENTRY" : "ENTRIES"}</p>
+        </div>
+
+        {stockLogsQuery.isError ? (
+          <div className="p-5"><ErrorAlert message={stockLogsQuery.error instanceof ApiError ? stockLogsQuery.error.message : "Failed to load stock log"} /></div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead className="border-b border-ink-950/8 bg-sage-50/60 text-ink-600">
+                <tr>
+                  {['Received', 'Location', 'Zone', 'Quantity'].map((heading) => <th key={heading} className="px-5 py-3 text-[0.68rem] font-bold tracking-[0.09em] uppercase">{heading}</th>)}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink-950/7">
+                {stockLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-10 text-center">
+                      <p className="font-bold text-ink-950">No receipt history</p>
+                      <p className="mt-1.5 text-sm text-ink-600">Restock activity will appear here.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  stockLogs.map((log) => {
+                    const location = locationById.get(log.location_id);
+                    return (
+                      <tr key={log.id} className="transition-colors hover:bg-sage-50/45">
+                        <td className="whitespace-nowrap px-5 py-4 text-ink-600">{formatDate(log.created_at)}</td>
+                        <td className="px-5 py-4 font-mono text-xs font-bold text-ink-950">{location?.code ?? log.location_id}</td>
+                        <td className="px-5 py-4 text-ink-800">{location?.zone ?? "—"}</td>
+                        <td className="px-5 py-4 font-mono font-bold tabular-nums text-sage-700">+{log.qty} <span className="font-sans text-xs font-medium text-ink-600">{item.unit}</span></td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} title="Delete item" description={`Remove ${item.name} from active inventory? This action cannot be undone.`} actions={<><Button variant="secondary" onClick={() => setConfirmDelete(false)}>Cancel</Button><Button variant="danger" isLoading={deleteMutation.isPending} onClick={handleDelete}>Delete item</Button></>} />
     </section>
   );
 }
