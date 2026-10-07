@@ -219,6 +219,10 @@ Deleting an item sets `deleted_at`; default item queries exclude deleted rows. T
 
 Search, category filtering, and pagination are handled by the API, while TanStack Query caches each parameter combination. This scales better than downloading the complete catalog and the 300 ms debounce limits search traffic. It also introduces request-state complexity and means a filter change may briefly show a loading transition.
 
+### Advisory SKU availability feedback
+
+The create and edit forms check exact SKU availability after a short debounce, cancel stale requests, and show checking, available, unavailable, or fallback states next to the field. This gives users earlier feedback and avoids unnecessary failed submissions, at the cost of an additional endpoint, request-state handling, and extra network calls while editing. The check is intentionally advisory because availability can change between checking and saving; the database uniqueness constraint and submit-time `409 Conflict` response remain the source of truth.
+
 ### Containerized, versioned migrations
 
 Database migrations run in a dedicated one-shot Docker service before the backend starts. Reviewers and maintainers therefore do not need to install a migration CLI or decide which SQL files to execute manually: the pinned migration tool applies every pending version in order. The same workflow is useful during development because the schema history is repeatable and remains synchronized across environments. The trade-off is an additional container and startup dependency; if a migration fails, the backend intentionally remains unavailable until the migration problem is resolved.
