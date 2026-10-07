@@ -1,6 +1,6 @@
 import type { Envelope, ErrorDetail } from "../types/api";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? "/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "/api/v1";
 
 /**
  * A normalized API error carrying the backend's structured details, when

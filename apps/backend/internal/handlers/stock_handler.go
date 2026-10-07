@@ -53,7 +53,7 @@ func NewStockHandler(service StockService) *StockHandler {
 // @Failure 400 {object} response.Envelope
 // @Failure 404 {object} response.Envelope
 // @Failure 500 {object} response.Envelope
-// @Router /stock/receive [post]
+// @Router /api/v1/stock/receive [post]
 func (h *StockHandler) Receive(c *gin.Context) {
 	lines, details := bindStockReceiveRequest(c)
 	if len(details) > 0 {
@@ -80,7 +80,7 @@ func (h *StockHandler) Receive(c *gin.Context) {
 // @Failure 400 {object} response.Envelope
 // @Failure 404 {object} response.Envelope
 // @Failure 500 {object} response.Envelope
-// @Router /stock/{item_id} [get]
+// @Router /api/v1/stock/{item_id} [get]
 func (h *StockHandler) Get(c *gin.Context) {
 	itemID, ok := bindStockItemID(c)
 	if !ok {
@@ -105,7 +105,7 @@ func (h *StockHandler) Get(c *gin.Context) {
 // @Success 200 {object} response.Envelope
 // @Failure 400 {object} response.Envelope
 // @Failure 500 {object} response.Envelope
-// @Router /stock/{item_id}/logs [get]
+// @Router /api/v1/stock/{item_id}/logs [get]
 func (h *StockHandler) GetLogs(c *gin.Context) {
 	itemID, ok := bindStockItemID(c)
 	if !ok {

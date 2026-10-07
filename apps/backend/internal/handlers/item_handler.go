@@ -76,7 +76,7 @@ func NewItemHandler(service ItemService) *ItemHandler {
 // @Failure 400 {object} response.Envelope
 // @Failure 409 {object} response.Envelope
 // @Failure 500 {object} response.Envelope
-// @Router /items [post]
+// @Router /api/v1/items [post]
 func (h *ItemHandler) Create(c *gin.Context) {
 	request, details := bindItemRequest(c)
 	if len(details) > 0 {
@@ -110,7 +110,7 @@ func (h *ItemHandler) Create(c *gin.Context) {
 // @Success 200 {object} response.Envelope
 // @Failure 400 {object} response.Envelope
 // @Failure 500 {object} response.Envelope
-// @Router /items [get]
+// @Router /api/v1/items [get]
 func (h *ItemHandler) List(c *gin.Context) {
 	input, details := bindItemListInput(c)
 	if len(details) > 0 {
@@ -143,7 +143,7 @@ func (h *ItemHandler) List(c *gin.Context) {
 // @Failure 400 {object} response.Envelope
 // @Failure 404 {object} response.Envelope
 // @Failure 500 {object} response.Envelope
-// @Router /items/{id} [get]
+// @Router /api/v1/items/{id} [get]
 func (h *ItemHandler) Get(c *gin.Context) {
 	id, ok := bindItemID(c)
 	if !ok {
@@ -172,7 +172,7 @@ func (h *ItemHandler) Get(c *gin.Context) {
 // @Failure 404 {object} response.Envelope
 // @Failure 409 {object} response.Envelope
 // @Failure 500 {object} response.Envelope
-// @Router /items/{id} [put]
+// @Router /api/v1/items/{id} [put]
 func (h *ItemHandler) Update(c *gin.Context) {
 	id, ok := bindItemID(c)
 	if !ok {
@@ -210,7 +210,7 @@ func (h *ItemHandler) Update(c *gin.Context) {
 // @Failure 400 {object} response.Envelope
 // @Failure 404 {object} response.Envelope
 // @Failure 500 {object} response.Envelope
-// @Router /items/{id} [delete]
+// @Router /api/v1/items/{id} [delete]
 func (h *ItemHandler) Delete(c *gin.Context) {
 	id, ok := bindItemID(c)
 	if !ok {

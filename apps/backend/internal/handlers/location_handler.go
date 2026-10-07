@@ -30,7 +30,7 @@ func NewLocationHandler(service LocationService) *LocationHandler {
 // @Produce json
 // @Success 200 {object} response.Envelope
 // @Failure 500 {object} response.Envelope
-// @Router /locations [get]
+// @Router /api/v1/locations [get]
 func (h *LocationHandler) List(c *gin.Context) {
 	locations, err := h.service.List(c.Request.Context())
 	if err != nil {

@@ -66,15 +66,16 @@ func main() {
 		middleware.ErrorHandler(logger),
 		middleware.Recovery(logger),
 	)
-	router.GET("/locations", locationHandler.List)
-	router.POST("/items", itemHandler.Create)
-	router.GET("/items", itemHandler.List)
-	router.GET("/items/:id", itemHandler.Get)
-	router.PUT("/items/:id", itemHandler.Update)
-	router.DELETE("/items/:id", itemHandler.Delete)
-	router.POST("/stock/receive", stockHandler.Receive)
-	router.GET("/stock/:item_id/logs", stockHandler.GetLogs)
-	router.GET("/stock/:item_id", stockHandler.Get)
+	api := router.Group("/api/v1")
+	api.GET("/locations", locationHandler.List)
+	api.POST("/items", itemHandler.Create)
+	api.GET("/items", itemHandler.List)
+	api.GET("/items/:id", itemHandler.Get)
+	api.PUT("/items/:id", itemHandler.Update)
+	api.DELETE("/items/:id", itemHandler.Delete)
+	api.POST("/stock/receive", stockHandler.Receive)
+	api.GET("/stock/:item_id/logs", stockHandler.GetLogs)
+	api.GET("/stock/:item_id", stockHandler.Get)
 
 	server := &http.Server{
 		Addr:              ":" + cfg.HTTPPort,

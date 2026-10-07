@@ -49,8 +49,8 @@ services:
     build:
       context: ./apps/frontend
     environment:
-      # Served through nginx, which proxies /api to the backend service.
-      VITE_API_URL: /api
+      # Served through nginx, which proxies /api/v1 to the backend service.
+      VITE_API_URL: /api/v1
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:

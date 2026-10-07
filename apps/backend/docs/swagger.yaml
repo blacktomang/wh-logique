@@ -3,7 +3,7 @@ info:
   title: WH Logique API
   version: 0.2.0
 paths:
-  /locations:
+  /api/v1/locations:
     get:
       summary: List locations
       description: Returns all seeded warehouse locations without pagination.
@@ -17,7 +17,7 @@ paths:
                 $ref: "#/components/schemas/LocationListResponse"
         "500":
           $ref: "#/components/responses/InternalError"
-  /items:
+  /api/v1/items:
     post:
       summary: Create item
       description: Creates an item after trimming fields and normalizing its SKU to uppercase.
@@ -81,7 +81,7 @@ paths:
           $ref: "#/components/responses/InvalidRequest"
         "500":
           $ref: "#/components/responses/InternalError"
-  /items/{id}:
+  /api/v1/items/{id}:
     parameters:
       - $ref: "#/components/parameters/ItemID"
     get:
@@ -147,7 +147,7 @@ paths:
           $ref: "#/components/responses/ItemNotFound"
         "500":
           $ref: "#/components/responses/InternalError"
-  /stock/receive:
+  /api/v1/stock/receive:
     post:
       summary: Receive stock
       description: Applies one or more stock receipts atomically. Each line adds the given quantity to an item-location balance and records an append-only stock log entry.
@@ -175,7 +175,7 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "500":
           $ref: "#/components/responses/InternalError"
-  /stock/{item_id}:
+  /api/v1/stock/{item_id}:
     parameters:
       - $ref: "#/components/parameters/StockItemID"
     get:
@@ -195,7 +195,7 @@ paths:
           $ref: "#/components/responses/ItemNotFound"
         "500":
           $ref: "#/components/responses/InternalError"
-  /stock/{item_id}/logs:
+  /api/v1/stock/{item_id}/logs:
     parameters:
       - $ref: "#/components/parameters/StockItemID"
     get:
