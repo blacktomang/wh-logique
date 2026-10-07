@@ -58,7 +58,6 @@ export function ItemDetailPage() {
         action={
           <div className="flex flex-wrap gap-2">
             <Link to={paths.itemRestock(item.id)}><Button>Restock</Button></Link>
-            <Link to={paths.itemEdit(item.id)}><Button variant="secondary">Edit item</Button></Link>
             <Button variant="danger" onClick={() => setConfirmDelete(true)}>Delete</Button>
           </div>
         }

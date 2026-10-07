@@ -19,8 +19,8 @@ export function ItemEditPage() {
 
   return (
     <section>
-      <Link to={paths.itemDetail(item.id)} className="mb-6 inline-flex items-center gap-2 rounded-md text-sm font-bold text-sage-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500">
-        <span aria-hidden="true">←</span> Back to item details
+      <Link to={paths.items} className="mb-6 inline-flex items-center gap-2 rounded-md text-sm font-bold text-sage-700 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500">
+        <span aria-hidden="true">←</span> Back to items
       </Link>
       <PageHeader eyebrow="Inventory control" title={`Edit ${item.name}`} description="Update the identifying details used for this item." />
       <div className="max-w-3xl rounded-2xl border border-ink-950/8 bg-paper p-5 shadow-[0_18px_48px_rgb(54_83_66/0.09)] sm:p-7">
